@@ -1,7 +1,4 @@
-final/final_all-distilroberta-v1.pkl
-final/final_embeddings_all-distilroberta-v1.npy
-material/english_preprocessed_messages.tsv.gz
-material/chats.db
-material/discovery_edges.csv.gz
-material/first_nodes.csv.gz
-material/extracted
+final/
+material/
+bertopic_models/
+

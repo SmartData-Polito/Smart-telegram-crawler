@@ -1,24 +1,15 @@
-import pandas as pd
-import torch
-import time
-from bertopic import BERTopic
+
 from cuml.cluster import HDBSCAN
 from cuml.manifold import UMAP
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics import silhouette_score
-import os
-from tqdm import tqdm
-from glob import glob
 from octis.evaluation_metrics.diversity_metrics import TopicDiversity
 from octis.evaluation_metrics.coherence_metrics import Coherence
-import numpy as np
 
 
-# Step 1: Load and preprocess the data
-df = pd.concat(([pd.read_csv(file, sep='\t') for file in tqdm(glob('sample/*.csv'))]), ignore_index=True)
-df=df.iloc[:len(df)//10]
+df_sampled = df_english_preprocessed_messages.iloc[:len(df//10)]
 
-texts=[sentence.split() for sentence in df['processed_text'].to_list()]
+texts=[sentence.split() for sentence in df_sampled['text_preprocessed'].to_list()]
 '''
 texts = [
     ["i", "love", "machine", "learning"],
@@ -49,6 +40,7 @@ def get_metrics(topic_model,texts=texts):
             if len(words)>=10:
                 topics_list.append(words)  # Extracting only words from (word, probability)
 
+    #topics_list = [["apple", "banana",...], ["data", "science"...], ...]
     # Wrap the topics into the expected format
     model_output = {"topics": topics_list}
 
@@ -74,6 +66,7 @@ def get_metrics(topic_model,texts=texts):
     return diversity_score,coherence_score
 
 # Step 2: Set device
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 # List of SentenceTransformer models
@@ -103,8 +96,8 @@ hdbscan_params = [
      ]
 
 # Step 5: Check if results already exist
-if os.path.exists('grid_search_results.csv'):
-    results_df = pd.read_csv('grid_search_results.csv')
+if os.path.exists('../final/grid_search_results.csv'):
+    results_df = pd.read_csv('../final/grid_search_results.csv')
 else:
     results_df = pd.DataFrame(columns=['model',
                 'umap_n_components',
@@ -137,13 +130,13 @@ umap_params = [
 '''
 for model_name, model_instance in tqdm(models.items()):
     # for every possible model of Sentence Transformer
-    if os.path.exists(f'embeddings/embeddings_{model_name}.npy'):
-        embeddings = np.load(f'embeddings/embeddings_{model_name}.npy')
+    if os.path.exists(f'../final/final_embeddings_{model_name}.npy'):
+        embeddings = np.load(f'../final/final_embeddings_{model_name}.npy')
         print(f'embedding {model_name} loaded')
     else:
         model_instance = model_instance.to(device)
-        embeddings = model_instance.encode(df['processed_text'].tolist(), show_progress_bar=True, device=device)
-        np.save(f'embeddings/embeddings_{model_name}.npy', embeddings)
+        embeddings = model_instance.encode(df_sampled['text_preprocessed'].tolist(), show_progress_bar=True, device=device)
+        np.save(f'../final/final_embeddings_{model_name}.npy', embeddings)
     
     for umap_config in umap_params:
         for hdbscan_config in hdbscan_params:
@@ -183,7 +176,7 @@ for model_name, model_instance in tqdm(models.items()):
                 language = 'english',
             )
             
-            topics, probs = topic_model.fit_transform(df['processed_text'],embeddings=embeddings)
+            topics, probs = topic_model.fit_transform(df_sampled['text_preprocessed'],embeddings=embeddings)
             print(f"Execution time for {model_name} UMAP: {time.time()-t0}s")
             
             topics=np.array(topics)
@@ -191,7 +184,7 @@ for model_name, model_instance in tqdm(models.items()):
             
             # Step 8: Save the model
             model_filename = f'bertopic_models/{model_name}_umap{umap_config["n_components"]}_umap{umap_config["n_neighbors"]}_umap{umap_config["min_dist"]}_hdbscan{hdbscan_config["min_cluster_size"]}.pkl'
-            topic_model.save(model_filename)
+            topic_model.save("../final/" + model_filename)
 
             # Step 9: Compute evaluation metrics
             diversity,coherence=get_metrics(topic_model)
@@ -233,7 +226,7 @@ for model_name, model_instance in tqdm(models.items()):
             print(results[-1])
                 
                 
-            pd.concat([results_df, pd.DataFrame(results)], ignore_index=True).to_csv('grid_search_results.csv', index=False)
+            pd.concat([results_df, pd.DataFrame(results)], ignore_index=True).to_csv('../final/grid_search_results.csv', index=False)
             
                 
 # Step 12: Output the best parameters and score
