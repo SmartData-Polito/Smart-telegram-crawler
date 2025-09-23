@@ -1,0 +1,29 @@
+name: grid_search_env_linux
+channels:
+  - rapidsai
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - cudatoolkit=11.8
+  - cuml=24.06
+  - cudf=24.06
+  - numpy
+  - pandas
+  - scikit-learn>=1.5
+  - sentence-transformers
+  - bertopic
+  - umap-learn
+  - hdbscan
+  - tqdm
+  - matplotlib
+  - seaborn
+  - joblib
+  - plotly
+  - psutil
+  - unidecode
+  - langdetect
+  - pip:
+      - octis==1.14.0

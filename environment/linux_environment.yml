@@ -1,0 +1,31 @@
+name: bertopic_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pandas
+  - pytorch
+  - numpy
+  - scikit-learn
+  - tqdm
+  - python-xxhash
+  - sqlite
+  - hdbscan
+  - umap-learn
+  - ipykernel
+  - langdetect
+  - cymem
+  - preshed
+  - spacy
+  - thinc
+  - murmurhash
+  - blis
+  - scipy
+  - contourpy
+  - srsly
+  - gensim
+  - matplotlib
+  - kiwisolver
+  - nbformat
+  - unrar
+prefix: /home/students/s328743/.conda/envs/bertopic_env
