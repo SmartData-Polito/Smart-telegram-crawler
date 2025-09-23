@@ -70,8 +70,8 @@ class PreProcessing:
         self.noentities = noentities
         self.remove_list = remove_list
         self.punctuation = (
-                r'\(|!|"|#|\$|%|&|\'|\(|\)|\*|\+|,|-|\.|\/|'
-                r':|;|<|=|>|\?|\@|\[|\]|\^|_|`|\{|\}|~|\||'
+                r'|!|"|#|\$|%|&|\'|\(||!|"|#|\$|%|&|\'|\(||\*|\+|,|-|\.|\/|'
+                r':|;|<|=|>|\?|\@||||\^|_|`|\{|\}|~|\||'
                 r'\r\n|\n|\r|\\\)'
         )
         # self.nlp = self._load_spacy_model(language)
@@ -309,10 +309,10 @@ output_path_preprocessed_english_messages = "../material/preprocessed_english_me
 output_path_preprocessed_messages_only_with_short_messages = "../material/preprocessed_short_messages.tsv.gz"
 output_path_preprocessed_messages_only_with_spam_messages = "../material/preprocessed_spam_messages.tsv.gz"
 output_path_channels_without_message = "../material/channels_without_message.tsv.gz"
-output_path_df_first_nodes = "../material/first_nodes.csv.gz"
+input_path_df_first_nodes = "../material/first_nodes.csv.gz"
 extracted_dir = '../../../telegram_2024/usc-tg-24-us-election/extracted'
 
-df_first_nodes = pd.read_csv(output_path_df_first_nodes)
+df_first_nodes = pd.read_csv(input_path_df_first_nodes)
 
 print(df_first_nodes.head())
 
@@ -419,7 +419,7 @@ df_preprocessed_non_empty_channels_spam_messages = (
     .query('count > 10')   
     .sort_values(['channel_id', 'count'], ascending=[True, False])
 )
-print("---dataframe with duplicates, ", len(df_preprocessed_non_empty_channels_spam_messages))
+print("---len dataframe with spam messages: ", len(df_preprocessed_non_empty_channels_spam_messages))
 df_preprocessed_non_empty_channels_spam_messages.to_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
 
 #clean up and filtering and dividing channels with short and long messages

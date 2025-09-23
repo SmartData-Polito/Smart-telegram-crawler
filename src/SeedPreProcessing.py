@@ -301,7 +301,6 @@ def preprocess_text(text,stopwords=stopwords):
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-pp2 = PreProcessing(language='en', stopwords=stopwords)
 
 # Path to the final preprocessed file
 output_path_preprocessed_messages = "../material/preprocessed_messages.tsv.gz"
@@ -419,7 +418,7 @@ df_preprocessed_non_empty_channels_spam_messages = (
     .query('count > 10')   
     .sort_values(['channel_id', 'count'], ascending=[True, False])
 )
-print("---dataframe with duplicates, ", len(df_preprocessed_non_empty_channels_spam_messages))
+print("---len dataframe with spam messages: ", len(df_preprocessed_non_empty_channels_spam_messages))
 df_preprocessed_non_empty_channels_spam_messages.to_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
 
 #clean up and filtering and dividing channels with short and long messages

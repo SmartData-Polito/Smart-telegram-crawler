@@ -18,6 +18,15 @@ from spacy.lang.en.stop_words import STOP_WORDS
 class PreProcessing:
     def __init__(self, noadverbs: bool = False, noadjectives: bool = False, noverbs: bool = False,
                  noentities: bool = False, language: str = 'en', remove_list: bool = False, stopwords=[]):
+        """Initialize the PreProcessing object.
+
+        Args:
+            noadverbs (bool, optional): Flag to indicate whether to remove adverbs. Defaults to False.
+            noadjectives (bool, optional): Flag to indicate whether to remove adjectives. Defaults to False.
+            noverbs (bool, optional): Flag to indicate whether to remove verbs. Defaults to False.
+            noentities (bool, optional): Flag to indicate whether to remove named entities. Defaults to False.
+            remove_list (bool, optional): Flag to indicate whether to remove stopwords. Defaults to False.
+        """
         self.noadverbs = noadverbs
         self.noadjectives = noadjectives
         self.noverbs = noverbs
@@ -133,41 +142,56 @@ def process_file(args):
 
 #write_df_in_chunks function definition
 def write_df_in_chunks(df, path, sep='\t', chunk_size=50000):
-    with open(path, 'wt', encoding='utf-8') as f:
-        for i in range(0, len(df), chunk_size):
-            df.iloc[i:i+chunk_size].to_csv(f, sep=sep, index=False, header=(i == 0))
+    first = True
+    for i in range(0, len(df), chunk_size):
+        df.iloc[i:i+chunk_size].to_csv(
+            path,
+            sep=sep,
+            index=False,
+            header=first,
+            mode='w' if first else 'a',
+            compression='gzip'
+        )
+        first = False
+
 
 
 # Start preprocessing
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-# Input paths
-extracted_dir = '../../../telegram_2024/usc-tg-24-us-election/extracted'
+#getting parameter from command line
 parser = argparse.ArgumentParser(description="Preprocess messages for a list of Telegram channels.")
 parser.add_argument(
     "--input",
     type=str,
-    required=True,
-    help="Path to the CSV file containing the list of channels (e.g. next_nodes.csv.gz or df_children.csv.gz)"
+    default="../material/first_nodes.csv.gz",
+    help="Path to the CSV file containing the list of channels (default: ../material/first_nodes.csv.gz)"
 )
 args = parser.parse_args()
-input_path_df_next_political_nodes = args.input
+#input path
+extracted_dir = '../../../telegram_2024/usc-tg-24-us-election/extracted'
+input_path_df_political_nodes = args.input
 # Output paths
-output_path_next_preprocessed_messages = "../material/next/next_preprocessed_messages.tsv.gz"
-output_path_next_preprocessed_english_messages = "../material/next/next_preprocessed_english_messages.tsv.gz"
-output_path_next_preprocessed_messages_only_with_short_messages = "../material/next/next_preprocessed_short_messages.tsv.gz"
-output_path_next_preprocessed_messages_only_with_spam_messages = "../material/next/next_preprocessed_spam_messages.tsv.gz"
-output_path_next_channels_without_message = "../material/next/next_channels_without_message.tsv.gz"
-
+if input_path_df_political_nodes == '../material/first_nodes.csv.gz': # case with the seeds
+    output_path_preprocessed_messages = "../material/preprocessed_messages.tsv.gz"
+    output_path_preprocessed_english_messages = "../material/preprocessed_english_messages.tsv.gz"
+    output_path_preprocessed_messages_only_with_short_messages = "../material/preprocessed_short_messages.tsv.gz"
+    output_path_preprocessed_messages_only_with_spam_messages = "../material/preprocessed_spam_messages.tsv.gz"
+    output_path_channels_without_message = "../material/channels_without_message.tsv.gz"
+else:
+    output_path_preprocessed_messages = "../material/next/next_preprocessed_messages.tsv.gz"
+    output_path_preprocessed_english_messages = "../material/next/next_preprocessed_english_messages.tsv.gz"
+    output_path_preprocessed_messages_only_with_short_messages = "../material/next/next_preprocessed_short_messages.tsv.gz"
+    output_path_preprocessed_messages_only_with_spam_messages = "../material/next/next_preprocessed_spam_messages.tsv.gz"
+    output_path_channels_without_message = "../material/next/next_channels_without_message.tsv.gz"
 
 # Read input list
 channels_without_message = []
-df_first_nodes = pd.read_csv(input_path_df_next_political_nodes)
+df_first_nodes = pd.read_csv(input_path_df_political_nodes)
 print(df_first_nodes.head())
 
-if os.path.exists(output_path_next_preprocessed_messages):
-    print("--- File already exists: {}".format(output_path_next_preprocessed_messages))
-    df_preprocessed_non_empty_channels = pd.read_csv(output_path_next_preprocessed_messages, sep='\t', compression='gzip')
+if os.path.exists(output_path_preprocessed_messages):
+    print("--- File already exists: {}".format(output_path_preprocessed_messages))
+    df_preprocessed_non_empty_channels = pd.read_csv(output_path_preprocessed_messages, sep='\t', compression='gzip')
     print("--- File loaded with {} preprocessed messages.".format(len(df_preprocessed_non_empty_channels)))
 else:
     file_args = []
@@ -180,24 +204,24 @@ else:
             continue
         file_args.extend([(file, channel_id) for file in files])
 
-#multiprocessing
-dfs = []
-with Pool(cpu_count()) as pool:
-    for res in tqdm(pool.imap_unordered(process_file, file_args), total=len(file_args)): #file_args = list of (file, channel_id)
-        if res is not None:
-            dfs.append(res)
-# Concatenate directly
-if dfs:
-    df_preprocessed_non_empty_channels = pd.concat(dfs, ignore_index=True)
-else:
-    df_preprocessed_non_empty_channels = pd.DataFrame()
+    #multiprocessing
+    dfs = []
+    with Pool(cpu_count()) as pool:
+        for res in tqdm(pool.imap_unordered(process_file, file_args), total=len(file_args)): #file_args = list of (file, channel_id)
+            if res is not None:
+                dfs.append(res)
+    # Concatenate directly
+    if dfs:
+        df_preprocessed_non_empty_channels = pd.concat(dfs, ignore_index=True)
+    else:
+        df_preprocessed_non_empty_channels = pd.DataFrame()
 
-if not os.path.exists(output_path_next_channels_without_message):
+if not os.path.exists(output_path_channels_without_message):
     df_channels_without_message = pd.DataFrame({'channel_id': channels_without_message})
     df_channels_without_message = df_channels_without_message.dropna(subset=['channel_id'])
     df_channels_without_message = df_channels_without_message[
         ~df_channels_without_message['channel_id'].isin(df_preprocessed_non_empty_channels['channel_id'])]
-    df_channels_without_message.to_csv(output_path_next_channels_without_message, sep='\t', index=False, compression='gzip')
+    df_channels_without_message.to_csv(output_path_channels_without_message, sep='\t', index=False, compression='gzip')
 
 # Spam detection
 spam_df = (
@@ -205,10 +229,11 @@ spam_df = (
     .groupby(['channel_id', 'text_preprocessed'])
     .size()
     .reset_index(name='count')
-    .query('count > 10')
+    .query('count > 6')
     .sort_values(['channel_id', 'count'], ascending=[True, False])
 )
-spam_df.to_csv(output_path_next_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
+print("---len dataframe with spam messages: ", len(spam_df))
+spam_df.to_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
 
 
 # Short/Long message split
@@ -221,12 +246,13 @@ short_df = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels
 df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['text_preprocessed'].apply(len) > 20]
 
 #writing in chunks the non empty channels and the one only with short messages
-write_df_in_chunks(df_preprocessed_non_empty_channels, output_path_next_preprocessed_messages)
-write_df_in_chunks(short_df, output_path_next_preprocessed_messages_only_with_short_messages)
+write_df_in_chunks(df_preprocessed_non_empty_channels, output_path_preprocessed_messages)
+write_df_in_chunks(short_df, output_path_preprocessed_messages_only_with_short_messages)
 
 # English filter
 df_english = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['language'] == 'en']
-df_english.to_csv(output_path_next_preprocessed_english_messages, sep='\t', index=False, compression='gzip')
+df_english.to_csv(output_path_preprocessed_english_messages, sep='\t', index=False, compression='gzip')
 
 with open("completed_successfully.txt", "w") as f:
+    
     f.write("preProcessing completata con successo.\n")
