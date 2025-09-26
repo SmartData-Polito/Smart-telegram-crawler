@@ -90,7 +90,6 @@ torch.manual_seed(SEED)
 #here we are working with the second layer
 
 #input paths
-#input_path_preprocessed_english_messages = "../rsults/levels/level_0/preprocessed_english_messages_level_0.tsv.gz"
 parser = argparse.ArgumentParser(description="Grid search")
 parser.add_argument(
     "--input", 
@@ -101,7 +100,7 @@ parser.add_argument(
 args = parser.parse_args()
 level_depth = args.input
 #input paths
-input_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_english_messages_level_{level_depth}.tsv.gz"
+input_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
