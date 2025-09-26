@@ -13,6 +13,31 @@ from glob import glob
 import argparse
 from spacy.lang.en.stop_words import STOP_WORDS
 
+# Start preprocessing
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+#getting parameter from command line
+parser = argparse.ArgumentParser(description="Preprocess messages for a list of Telegram channels.")
+parser.add_argument(
+    "--input",
+    type=str,
+    default="0",
+    help="Depth of the hierarchy(default: 0)"
+)
+args = parser.parse_args()
+#input path
+extracted_dir = '../../../telegram_2024/usc-tg-24-us-election/extracted'
+level_depth = args.input
+input_path_df_political_nodes = f'../results/levels/level_{level_depth}/preProcessing/nodes_level_{level_depth}.csv.gz'
+# Output paths
+output_path_preprocessed_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_messages_level_{level_depth}.tsv.gz"
+output_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_english_messages_level_{level_depth}.tsv.gz"
+output_path_preprocessed_messages_only_with_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_short_messages_level_{level_depth}.tsv.gz"
+output_path_preprocessed_messages_only_with_spam_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_spam_messages_level_{level_depth}.tsv.gz"
+output_path_channels_without_message = f"../results/levels/level_{level_depth}/preProcessing/channels_without_message_level_{level_depth}.tsv.gz"
+
+#create directorie
+level_dir = f"../results/levels/level_{level_depth}/preProcessing/"
+os.makedirs(level_dir, exist_ok=True)
 
 #Preprocessing class
 class PreProcessing:
@@ -139,7 +164,6 @@ def process_file(args):
         print(f"--- Error in file {file}: {type(e).__name__}: {e}")
         return None
 
-
 #write_df_in_chunks function definition
 def write_df_in_chunks(df, path, sep='\t', chunk_size=50000):
     first = True
@@ -153,32 +177,6 @@ def write_df_in_chunks(df, path, sep='\t', chunk_size=50000):
             compression='gzip'
         )
         first = False
-
-# Start preprocessing
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-#getting parameter from command line
-parser = argparse.ArgumentParser(description="Preprocess messages for a list of Telegram channels.")
-parser.add_argument(
-    "--input",
-    type=str,
-    default="0",
-    help="Depth of the hierarchy(default: 0)"
-)
-args = parser.parse_args()
-#input path
-extracted_dir = '../../../telegram_2024/usc-tg-24-us-election/extracted'
-level_depth = args.input
-input_path_df_political_nodes = f'../results/levels/level_{level_depth}/preProcessing/nodes_level_{level_depth}.csv.gz'
-# Output paths
-output_path_preprocessed_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_messages_level_{level_depth}.tsv.gz"
-output_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_english_messages_level_{level_depth}.tsv.gz"
-output_path_preprocessed_messages_only_with_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_short_messages_level_{level_depth}.tsv.gz"
-output_path_preprocessed_messages_only_with_spam_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_spam_messages_level_{level_depth}.tsv.gz"
-output_path_channels_without_message = f"../results/levels/level_{level_depth}/preProcessing/channels_without_message_level_{level_depth}.tsv.gz"
-
-#create directorie
-level_dir = f"../results/levels/level_{level_depth}/preProcessing/"
-os.makedirs(level_dir, exist_ok=True)
 
 # Read input list
 channels_without_message = []
@@ -218,19 +216,7 @@ if not os.path.exists(output_path_channels_without_message):
     df_channels_without_message = df_channels_without_message[
         ~df_channels_without_message['channel_id'].isin(df_preprocessed_non_empty_channels['channel_id'])]
     df_channels_without_message.to_csv(output_path_channels_without_message, sep='\t', index=False, compression='gzip')
-
-# Spam detection
-spam_df = (
-    df_preprocessed_non_empty_channels
-    .groupby(['channel_id', 'text_preprocessed'])
-    .size()
-    .reset_index(name='count')
-    .query('count > 6')
-    .sort_values(['channel_id', 'count'], ascending=[True, False])
-)
-print("---len dataframe with spam messages: ", len(spam_df))
-spam_df.to_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
-
+    
 
 # Short/Long message split
 # Clean duplicates and short messages
@@ -238,9 +224,9 @@ print("len before drop_duplicates:", len(df_preprocessed_non_empty_channels))
 df_preprocessed_non_empty_channels.drop_duplicates(subset=['text_preprocessed'], inplace=True)
 print("len after drop_duplicates:", len(df_preprocessed_non_empty_channels))
 
-short_df = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['text_preprocessed'].apply(len) <= 20]
+short_df = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['text'].apply(len) <= 10]
 print("len before dropping short message:", len(df_preprocessed_non_empty_channels))
-df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['text_preprocessed'].apply(len) > 20]
+df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['text'].apply(len) > 10]
 print("len after dropping short message:", len(df_preprocessed_non_empty_channels))
 
 #writing in chunks the non empty channels and the one only with short messages
@@ -250,6 +236,23 @@ write_df_in_chunks(short_df, output_path_preprocessed_messages_only_with_short_m
 # English filter
 df_english = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['language'] == 'en']
 df_english.to_csv(output_path_preprocessed_english_messages, sep='\t', index=False, compression='gzip')
+
+#spam messages
+if os.path.exists(output_path_preprocessed_messages_only_with_spam_messages):
+    print("--- File already exists: {}".format(output_path_preprocessed_messages_only_with_spam_messages))
+    spam_df = pd.read_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', compression='gzip')
+    print("---len dataframe with spam messages: ", len(spam_df))
+else:
+    spam_df = (
+        df_preprocessed_non_empty_channels
+        .groupby(['channel_id', 'text_preprocessed'])
+        .size()
+        .reset_index(name='count')
+        .query('count > 6')
+        .sort_values(['channel_id', 'count'], ascending=[True, False])
+    )
+    print("---len dataframe with spam messages: ", len(spam_df))
+    spam_df.to_csv(output_path_preprocessed_messages_only_with_spam_messages, sep='\t', index=False, compression='gzip')
 
 with open("completed_successfully.txt", "w") as f:
     
