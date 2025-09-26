@@ -100,7 +100,7 @@ parser.add_argument(
 args = parser.parse_args()
 level_depth = args.input
 #input paths
-input_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
+input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
@@ -114,10 +114,11 @@ os.makedirs(level_dir_vectorizers, exist_ok=True)
 os.makedirs(level_dir_embeddings, exist_ok=True)
 
 #dataframe creation and saving
-df_english_preprocessed_non_empty_channels = pd.read_csv(input_path_preprocessed_english_messages, sep='\t', compression='gzip')
-print("input accepted df_english_preprocessed_non_empty_channels some examples\n")
-print(df_english_preprocessed_non_empty_channels.head())
-df_sampled = df_english_preprocessed_non_empty_channels.sample(frac=1, random_state=SEED)
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
+print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
+print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
+print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
+df_sampled = df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.sample(frac=1, random_state=SEED)
 df_sampled.to_csv(output_path_df_sampled, index=False)
 
 print("imported df_sampled")
