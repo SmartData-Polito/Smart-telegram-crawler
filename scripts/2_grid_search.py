@@ -68,7 +68,7 @@ import argparse
 #    - computes metrics: Coherence, Diversity, Silhouette, number of topics, outliers, etc.,
 #    - saves the trained model and its vectorizer,
 #    - returns the results as a dictionary.
-# 4. Prepare the results CSV `next_grid_search_results.csv`.
+# 4. Prepare the results CSV `grid_search_results.csv`.
 # 5. For each SentenceTransformer embedding model:
 #    - generate embeddings and save them as `.npy` (if not already available),
 #    - build all combinations of UMAP and HDBSCAN parameters not yet tested,
@@ -81,6 +81,62 @@ import argparse
 # - Directories containing saved BERTopic models and vectorizers
 # - `.npy` embeddings of the texts for each SentenceTransformer model
 
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# Step 1: sample & save
+#here we are working with the second layer
+
+#input paths
+parser = argparse.ArgumentParser(description="Grid search")
+parser.add_argument(
+    "--input", 
+    type=str, 
+     default="0",
+    help="Path to the CSV file containing the preprocessed messages"
+)
+args = parser.parse_args()
+level_depth = args.input
+#input paths
+input_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
+#output paths
+output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
+out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
+
+#create directorie
+level_dir_bertopic_models = f"../results/levels/level_{level_depth}/grid_search/bertopic_models_level_{level_depth}/"
+level_dir_vectorizers = f"../results/levels/level_{level_depth}/grid_search/vectorizers_level_{level_depth}/"
+level_dir_embeddings = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/"
+os.makedirs(level_dir_bertopic_models, exist_ok=True)
+os.makedirs(level_dir_vectorizers, exist_ok=True)
+os.makedirs(level_dir_embeddings, exist_ok=True)
+
+#dataframe creation and saving
+df_english_preprocessed_non_empty_channels = pd.read_csv(input_path_preprocessed_english_messages, sep='\t', compression='gzip')
+print("input accepted df_english_preprocessed_non_empty_channels some examples\n")
+print(df_english_preprocessed_non_empty_channels.head())
+df_sampled = df_english_preprocessed_non_empty_channels.sample(frac=1, random_state=SEED)
+df_sampled.to_csv(output_path_df_sampled, index=False)
+
+print("imported df_sampled")
+
+"""
+df_sampled['text_preprocessed'] = 
+0   "hello world"
+1   "machine learning is fun"
+2   "pizza and pasta"
+"""
+texts = [sentence.split() for sentence in df_sampled['text_preprocessed'].tolist()]
+"""
+texts = 
+[
+  ["hello", "world"],
+  ["machine", "learning", "is", "fun"],
+  ["pizza", "and", "pasta"]
+]
+"""
 
 
 #get_metrics function definition
@@ -123,7 +179,7 @@ def get_metrics(topic_model, texts=texts):
 
 # helper to check existing runs
 def not_already_tested(model_name, uc, hc):
-    df = pd.read_csv(out_path_next_grid_search_results)
+    df = pd.read_csv(out_path_grid_search_results)
     return not ((df['model'] == model_name) &
                 (df['umap_n_components'] == uc['n_components']) &
                 (df['umap_n_neighbors'] == uc['n_neighbors']) &
@@ -144,7 +200,7 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
         top_n_words=20,
         language='english'
     )
-    topics, _ = topic_model.fit_transform(df_sampled['text_preprocessed'], embeddings=embeddings) #clustering
+    topic_model.fit_transform(df_sampled['text_preprocessed'], embeddings=embeddings) #clustering
 
     # reduced = [
     #   [0.1, 0.2],   # Document 1
@@ -170,10 +226,9 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
            if mask.sum() > 1 and len(np.unique(labels[mask])) > 1 else 0.0)
 
     suffix = f"{model_name}_umap{umap_config['n_components']}_umap{umap_config['n_neighbors']}_umap{umap_config['min_dist']}_hdbscan{hdbscan_config['min_cluster_size']}"
-    os.makedirs(next_model_dir, exist_ok=True)
-    topic_model.save(os.path.join(next_model_dir, suffix))  # salva come directory
-    os.makedirs(next_vectorizer_dir, exist_ok=True)
-    joblib.dump(topic_model.vectorizer_model, os.path.join(next_vectorizer_dir, f"vectorizer_{suffix}.pkl"))
+    os.makedirs(level_dir_bertopic_models, exist_ok=True)
+    topic_model.save(os.path.join(level_dir_bertopic_models, suffix))  # salva come directory
+    joblib.dump(topic_model.vectorizer_model, os.path.join(level_dir_vectorizers, f"vectorizer_{suffix}.pkl"))
 
     series = pd.Series(labels[labels != -1])
     return {
@@ -191,72 +246,12 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
         'max_topic':   int(series.value_counts().max())
     }
 
-
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-
-# Step 1: sample & save
-#here we are working with the second layer
-
-#input paths
-#input_path_next_preprocessed_english_messages = "../material/next/next_preprocessed_english_messages.tsv.gz"
-parser = argparse.ArgumentParser(description="Grid search")
-parser.add_argument(
-    "--input", 
-    type=str, 
-     default="0",
-    help="Path to the CSV file containing the preprocessed messages"
-)
-args = parser.parse_args()
-input_path_next_preprocessed_english_messages = args.input
-#output paths
-output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
-out_path_next_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
-next_model_dir = f"../results/levels/level_{level_depth}/grid_search/bertopic_models_level_{level_depth}"
-next_vectorizer_dir = f"../results/levels/level_{level_depth}/grid_search/vectorizers_level_{level_depth}"
-path_next_emb = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/embedding_{model_name}_level_{level_depth}.npy"
-
-#create directorie
-level_dir_bertopic_models = f"../results/levels/level_{level_depth}/grid_search/bertopic_models_level_{level_depth}/"
-level_dir_vectorizers = f"../results/levels/level_{level_depth}/grid_search/vectorizers_level{level_depth}/"
-level_dir_embeddings = f"../results/levels/level_{level_depth}/grid_search/embeddings_level{level_depth}/"
-os.makedirs(level_dir_bertopic_models, exist_ok=True)
-os.makedirs(level_dir_vectorizers, exist_ok=True)
-os.makedirs(level_dir_embeddings, exist_ok=True)
-
-#dataframe creation and saving
-df_english_preprocessed_non_empty_channels = pd.read_csv(input_path_next_preprocessed_english_messages, sep='\t', compression='gzip')
-print("input accepted\n")
-df_sampled = df_english_preprocessed_non_empty_channels.sample(frac=1, random_state=SEED)
-df_sampled.to_csv(output_path_df_sampled, index=False)
-
-print("imported df_sampled")
-
-"""
-df_sampled['text_preprocessed'] = 
-0   "hello world"
-1   "machine learning is fun"
-2   "pizza and pasta"
-"""
-texts = [sentence.split() for sentence in df_sampled['text_preprocessed'].tolist()]
-"""
-texts = 
-[
-  ["hello", "world"],
-  ["machine", "learning", "is", "fun"],
-  ["pizza", "and", "pasta"]
-]
-"""
-
 # Step 2: Set device & models
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 
 # Step 3: vectorizer (unused in BERTopic instantiation here, but kept)
-from sklearn.feature_extraction.text import CountVectorizer
 vectorizer_model = CountVectorizer(ngram_range=(1,1), stop_words="english")
 
 # Step 4: grid params
@@ -289,8 +284,8 @@ cols = [
     'hdbscan_min_cluster_size','coherence','diversity','silhouette',
     'n_outliers','n_topics','min_topic','max_topic'
 ]
-if not os.path.exists(out_path_next_grid_search_results):
-    pd.DataFrame(columns=cols).to_csv(out_path_next_grid_search_results, index=False)
+if not os.path.exists(out_path_grid_search_results):
+    pd.DataFrame(columns=cols).to_csv(out_path_grid_search_results, index=False)
 
 models = {
     'all-distilroberta-v1': SentenceTransformer('all-distilroberta-v1'),
@@ -299,7 +294,8 @@ models = {
 }
 
 for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1', 'paraphrase-MiniLM-L6-v2'..
-    if os.path.exists(path_next_emb):
+    path_emb = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/embedding_{model_name}_level_{level_depth}.npy"
+    if os.path.exists(path_emb):
         print(f"Embedding già esistente: {model_name}")
         continue
     model_instance = model_instance.to(device) # but the model on gpu if possible
@@ -308,14 +304,15 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
         show_progress_bar=True,
         device=device
     )
-    np.save(path_next_emb, embeddings)
-    print(f"Salvato: {path_next_emb}")
+    np.save(path_emb, embeddings)
+    print(f"Salvato: {path_emb}")
 
 for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1', 'paraphrase-MiniLM-L6-v2'..
-    if not os.path.exists(path_next_emb):
+    path_emb = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/embedding_{model_name}_level_{level_depth}.npy"
+    if not os.path.exists(path_emb):
         print(f"[⚠️] Missing embedding for {model_name}, skipped.")
         continue
-    embeddings = np.load(path_next_emb)
+    embeddings = np.load(path_emb)
 
     # build param grid for this model
     param_grid = [
@@ -333,7 +330,7 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
 
     # append to CSV
     temp_df = pd.DataFrame(batch_results)
-    temp_df.to_csv(out_path_next_grid_search_results, mode='a', index=False, header=False)
+    temp_df.to_csv(out_path_grid_search_results, mode='a', index=False, header=False)
     
 with open("completed_successfully.txt", "w") as f:
     f.write("Grid search completata con successo.\n")
