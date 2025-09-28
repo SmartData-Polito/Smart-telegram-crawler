@@ -100,7 +100,7 @@ parser.add_argument(
 args = parser.parse_args()
 level_depth = args.input
 #input paths
-input_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
+input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
@@ -114,10 +114,11 @@ os.makedirs(level_dir_vectorizers, exist_ok=True)
 os.makedirs(level_dir_embeddings, exist_ok=True)
 
 #dataframe creation and saving
-df_english_preprocessed_non_empty_channels = pd.read_csv(input_path_preprocessed_english_messages, sep='\t', compression='gzip')
-print("input accepted df_english_preprocessed_non_empty_channels some examples\n")
-print(df_english_preprocessed_non_empty_channels.head())
-df_sampled = df_english_preprocessed_non_empty_channels.sample(frac=1, random_state=SEED)
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
+print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
+print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
+print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
+df_sampled = df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.sample(frac=1, random_state=SEED)
 df_sampled.to_csv(output_path_df_sampled, index=False)
 
 print("imported df_sampled")
@@ -256,6 +257,14 @@ vectorizer_model = CountVectorizer(ngram_range=(1,1), stop_words="english")
 
 # Step 4: grid params
 umap_params = [
+    {'n_components': 10, 'n_neighbors': 5,  'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 10, 'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 15, 'min_dist': 0.05},
+    {'n_components': 15, 'n_neighbors': 5,  'min_dist': 0.0},
+    {'n_components': 15, 'n_neighbors': 10, 'min_dist': 0.1},
+    {'n_components': 5,  'n_neighbors': 10, 'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 25, 'min_dist': 0.1},
+    {'n_components': 15, 'n_neighbors': 25, 'min_dist': 0.1},
     {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.0},
     {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.0},
     {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.0},
@@ -271,6 +280,7 @@ umap_params = [
 ]
 
 hdbscan_params = [
+    {'min_cluster_size': 15},
     {'min_cluster_size': 30},
     {'min_cluster_size': 50},
     {'min_cluster_size': 100},

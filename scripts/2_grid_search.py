@@ -257,6 +257,14 @@ vectorizer_model = CountVectorizer(ngram_range=(1,1), stop_words="english")
 
 # Step 4: grid params
 umap_params = [
+    {'n_components': 10, 'n_neighbors': 5,  'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 10, 'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 15, 'min_dist': 0.05},
+    {'n_components': 15, 'n_neighbors': 5,  'min_dist': 0.0},
+    {'n_components': 15, 'n_neighbors': 10, 'min_dist': 0.1},
+    {'n_components': 5,  'n_neighbors': 10, 'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 25, 'min_dist': 0.1},
+    {'n_components': 15, 'n_neighbors': 25, 'min_dist': 0.1},
     {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.0},
     {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.0},
     {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.0},
@@ -272,6 +280,7 @@ umap_params = [
 ]
 
 hdbscan_params = [
+    {'min_cluster_size': 15},
     {'min_cluster_size': 30},
     {'min_cluster_size': 50},
     {'min_cluster_size': 100},
