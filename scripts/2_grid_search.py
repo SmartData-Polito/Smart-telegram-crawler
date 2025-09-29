@@ -55,6 +55,7 @@ from bertopic import BERTopic
 import pandas as pd
 import plotly.io as pio
 import argparse
+import shutil
 
 # This script performs a grid search for BERTopic using different embedding models,
 # UMAP, and HDBSCAN parameters, while computing topic quality metrics.
@@ -100,7 +101,7 @@ parser.add_argument(
 args = parser.parse_args()
 level_depth = args.input
 #input paths
-input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
+output_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_english_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
@@ -114,7 +115,7 @@ os.makedirs(level_dir_vectorizers, exist_ok=True)
 os.makedirs(level_dir_embeddings, exist_ok=True)
 
 #dataframe creation and saving
-df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_english_messages, sep='\t', compression='gzip')
 print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
 print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
 print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
@@ -185,11 +186,7 @@ def not_already_tested(model_name, uc, hc):
                 (df['umap_n_components'] == uc['n_components']) &
                 (df['umap_n_neighbors'] == uc['n_neighbors']) &
                 (df['umap_min_dist'] == uc['min_dist']) &
-                (df['umap_metric'] == uc.get('metric','cosine')) &
-                (df['hdbscan_min_cluster_size'] == hc['min_cluster_size']) &
-                (df['hdbscan_min_samples'] == hc.get('min_samples', np.nan)) &
-                (df['hdbscan_selection'] == hc.get('cluster_selection_method', 'eom'))
-               ).any()
+                (df['hdbscan_min_cluster_size'] == hc['min_cluster_size'])).any()
 
 
 # define single-run function
@@ -207,23 +204,30 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
     )
     topic_model.fit_transform(df_sampled['text_preprocessed'], embeddings=embeddings) #clustering
 
+    # reduced = [
+    #   [0.1, 0.2],   # Document 1
+    #   [5.0, 5.0],   # Document 2
+    #   [0.0, 0.3],   # Document 3
+    #   [0.2, 0.1]    # Document 4
+    # ]
+    # labels = np.array([0, 1, -1, 0])
+    # Document 1 → topic 0
+    # Document 2 → topic 1
+    # Document 3 → outlier (-1, not assigned to any topic)
+    # Document 4 → topic 0
+
     diversity, coherence = get_metrics(topic_model)
     reduced = umap_model.transform(embeddings)
     labels  = np.array(topic_model.topics_)
     mask    = labels != -1
+    # Only compute silhouette if:
+    # - there are at least 2 non-outlier samples (mask.sum() > 1)
+    # - and at least 2 different clusters exist (len(np.unique(labels[mask])) > 1)
+    # Otherwise, return 0.0 because silhouette_score would be invalid.
     sil = (silhouette_score(reduced[mask], labels[mask])
            if mask.sum() > 1 and len(np.unique(labels[mask])) > 1 else 0.0)
 
-    suffix = (
-        f"{model_name}"
-        f"_umapC{umap_config['n_components']}"
-        f"_umapK{umap_config['n_neighbors']}"
-        f"_umapD{umap_config['min_dist']}"
-        f"_umapM{umap_config.get('metric','cosine')}"
-        f"_hdbS{hdbscan_config['min_cluster_size']}"
-        f"_hdbMS{hdbscan_config.get('min_samples','NA')}"
-        f"_hdbM{hdbscan_config.get('cluster_selection_method','eom')}"
-    )
+    suffix = f"{model_name}_umap{umap_config['n_components']}_umap{umap_config['n_neighbors']}_umap{umap_config['min_dist']}_hdbscan{hdbscan_config['min_cluster_size']}"
     os.makedirs(level_dir_bertopic_models, exist_ok=True)
     topic_model.save(os.path.join(level_dir_bertopic_models, suffix))  # salva come directory
     joblib.dump(topic_model.vectorizer_model, os.path.join(level_dir_vectorizers, f"vectorizer_{suffix}.pkl"))
@@ -234,17 +238,14 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
         'umap_n_components': umap_config['n_components'],
         'umap_n_neighbors':  umap_config['n_neighbors'],
         'umap_min_dist':      umap_config['min_dist'],
-        'umap_metric':        umap_config.get('metric','cosine'),
         'hdbscan_min_cluster_size': hdbscan_config['min_cluster_size'],
-        'hdbscan_min_samples':      hdbscan_config.get('min_samples', np.nan),
-        'hdbscan_selection':        hdbscan_config.get('cluster_selection_method','eom'),
         'coherence':   coherence,
         'diversity':   diversity,
         'silhouette':  sil,
         'n_outliers':  int((labels == -1).sum()),
         'n_topics':    int(len(np.unique(labels)) - ( -1 in labels )),
-        'min_topic':   int(series.value_counts().min()) if not series.empty else 0,
-        'max_topic':   int(series.value_counts().max()) if not series.empty else 0
+        'min_topic':   int(series.value_counts().min()),
+        'max_topic':   int(series.value_counts().max())
     }
 
 # Step 2: Set device & models
@@ -257,43 +258,45 @@ vectorizer_model = CountVectorizer(ngram_range=(1,1), stop_words="english")
 
 # Step 4: grid params
 umap_params = [
-    {'n_components': 10, 'n_neighbors': 5,  'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 10, 'n_neighbors': 10, 'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 10, 'n_neighbors': 15, 'min_dist': 0.05, 'metric': 'cosine'},
-    {'n_components': 15, 'n_neighbors': 5,  'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 15, 'n_neighbors': 10, 'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 5,  'n_neighbors': 10, 'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 10, 'n_neighbors': 25, 'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 15, 'n_neighbors': 25, 'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 5,   'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 25,  'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 125, 'min_dist': 0.0,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 5,   'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 25,  'min_dist': 0.1,  'metric': 'cosine'},
-    {'n_components': 3, 'n_neighbors': 125, 'min_dist': 0.1,  'metric': 'cosine'},
+    {'n_components': 15, 'n_neighbors': 5,   'min_dist': 0.0},
+    {'n_components': 15, 'n_neighbors': 25,  'min_dist': 0.0},
+    {'n_components': 15, 'n_neighbors': 125, 'min_dist': 0.0},
+    {'n_components': 15, 'n_neighbors': 5,   'min_dist': 0.1},
+    {'n_components': 15, 'n_neighbors': 25,  'min_dist': 0.1},
+    {'n_components': 15, 'n_neighbors': 125, 'min_dist': 0.1},
+    {'n_components': 10, 'n_neighbors': 5,   'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 25,  'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 125, 'min_dist': 0.0},
+    {'n_components': 10, 'n_neighbors': 5,   'min_dist': 0.1},
+    {'n_components': 10, 'n_neighbors': 25,  'min_dist': 0.1},
+    {'n_components': 10, 'n_neighbors': 125, 'min_dist': 0.1},
+    {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.0},
+    {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.0},
+    {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.0},
+    {'n_components': 5, 'n_neighbors': 5,   'min_dist': 0.1},
+    {'n_components': 5, 'n_neighbors': 25,  'min_dist': 0.1},
+    {'n_components': 5, 'n_neighbors': 125, 'min_dist': 0.1},
+    {'n_components': 3, 'n_neighbors': 5,   'min_dist': 0.0},
+    {'n_components': 3, 'n_neighbors': 25,  'min_dist': 0.0},
+    {'n_components': 3, 'n_neighbors': 125, 'min_dist': 0.0},
+    {'n_components': 3, 'n_neighbors': 5,   'min_dist': 0.1},
+    {'n_components': 3, 'n_neighbors': 25,  'min_dist': 0.1},
+    {'n_components': 3, 'n_neighbors': 125, 'min_dist': 0.1},
 ]
 
 hdbscan_params = [
-    {'min_cluster_size': 15,  'min_samples': 1,  'cluster_selection_method': 'leaf'},
-    {'min_cluster_size': 30,  'min_samples': 1,  'cluster_selection_method': 'leaf'},
-    {'min_cluster_size': 50,  'min_samples': 5,  'cluster_selection_method': 'leaf'},
-    {'min_cluster_size': 75,  'min_samples': 5,  'cluster_selection_method': 'leaf'},
-    {'min_cluster_size': 100, 'min_samples': 5,  'cluster_selection_method': 'eom'},
-    {'min_cluster_size': 250, 'min_samples': 5,  'cluster_selection_method': 'eom'},
-    {'min_cluster_size': 500, 'min_samples': 10, 'cluster_selection_method': 'eom'},
+    {'min_cluster_size': 10}
+    {'min_cluster_size': 15},
+    {'min_cluster_size': 30},
+    {'min_cluster_size': 50},
+    {'min_cluster_size': 80},
+    {'min_cluster_size': 100},
 ]
 
 # Step 5: prepare output CSV
 cols = [
-    'model','umap_n_components','umap_n_neighbors','umap_min_dist','umap_metric',
-    'hdbscan_min_cluster_size','hdbscan_min_samples','hdbscan_selection',
-    'coherence','diversity','silhouette',
+    'model','umap_n_components','umap_n_neighbors','umap_min_dist',
+    'hdbscan_min_cluster_size','coherence','diversity','silhouette',
     'n_outliers','n_topics','min_topic','max_topic'
 ]
 if not os.path.exists(out_path_grid_search_results):
