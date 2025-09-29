@@ -114,6 +114,35 @@ os.makedirs(level_dir_bertopic_models, exist_ok=True)
 os.makedirs(level_dir_vectorizers, exist_ok=True)
 os.makedirs(level_dir_embeddings, exist_ok=True)
 
+# --- funzione helper per svuotare directory ---
+def empty_dir(dir_path: str):
+    if os.path.isdir(dir_path):
+        for name in os.listdir(dir_path):
+            full = os.path.join(dir_path, name)
+            try:
+                if os.path.isfile(full) or os.path.islink(full):
+                    os.unlink(full)          # file o symlink
+                else:
+                    shutil.rmtree(full)      # directory
+            except Exception as e:
+                print(f"[WARN] impossibile rimuovere {full}: {e}")
+
+# Svuota le cartellee
+empty_dir(level_dir_bertopic_models)
+empty_dir(level_dir_vectorizers)
+
+# --- rimuovi file CSV se esistono ---
+for f in [output_path_df_sampled, out_path_grid_search_results]:
+    try:
+        if os.path.exists(f):
+            os.remove(f)
+            print(f"[INFO] Rimosso file {f}")
+    except Exception as e:
+        print(f"[WARN] impossibile rimuovere {f}: {e}")
+
+print("[INFO] Pulizia completata: modelli, vectorizer e CSV resettati.")
+
+
 #dataframe creation and saving
 df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_english_messages, sep='\t', compression='gzip')
 print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
@@ -130,7 +159,7 @@ df_sampled['text_preprocessed'] =
 1   "machine learning is fun"
 2   "pizza and pasta"
 """
-texts = [sentence.split() for sentence in df_sampled['text_preprocessed'].tolist()]
+texts = [str(sentence).split() for sentence in df_sampled['text_preprocessed'].tolist()]
 """
 texts = 
 [
@@ -285,7 +314,7 @@ umap_params = [
 ]
 
 hdbscan_params = [
-    {'min_cluster_size': 10}
+    {'min_cluster_size': 10},
     {'min_cluster_size': 15},
     {'min_cluster_size': 30},
     {'min_cluster_size': 50},
