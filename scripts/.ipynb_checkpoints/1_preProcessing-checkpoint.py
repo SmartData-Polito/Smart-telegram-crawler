@@ -223,6 +223,15 @@ else:
 
 # DROP NaN, ALL STRINGS
 df_preprocessed_non_empty_channels=df_preprocessed_non_empty_channels.dropna()
+df_preprocessed_non_empty_channels.loc[:, 'text'] = (
+    df_preprocessed_non_empty_channels['text']
+      .astype('string')
+      .str.strip()
+)
+df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[
+    df_preprocessed_non_empty_channels['text'] != ""
+]
+df_preprocessed_non_empty_channels=df_preprocessed_non_empty_channels.dropna()
 df_preprocessed_non_empty_channels.loc[:, 'text_preprocessed'] = (
     df_preprocessed_non_empty_channels['text_preprocessed']
       .astype('string')

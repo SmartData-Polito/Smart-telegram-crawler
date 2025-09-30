@@ -103,7 +103,7 @@ level_depth = args.input
 print(f"#debug1 level_depth={level_depth}")  #debug1
 
 #input paths
-output_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_short_messages_level_{level_depth}.tsv.gz"
+output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_short_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
@@ -148,8 +148,8 @@ print("#debug4 removed previous CSVs if existed")  #debug4
 print("[INFO] Pulizia completata: modelli, vectorizer e CSV resettati.")
 
 #dataframe creation and saving
-print(f"#debug5 reading: {output_path_preprocessed_english_messages}")  #debug5
-df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_english_messages, sep='\t', compression='gzip')
+print(f"#debug5 reading: {output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages}")  #debug5
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
 print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
 print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
 print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
