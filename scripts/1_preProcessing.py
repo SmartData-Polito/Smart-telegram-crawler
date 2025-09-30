@@ -52,8 +52,8 @@ output_path_channels_without_message = os.path.join(level_dir, f"channels_withou
 
 
 #variables
-considered_short_tokens = 3
-considered_spam_threshold = 3
+considered_short_tokens = 5
+considered_spam_threshold = 6
 
 #Preprocessing class
 class PreProcessing:
@@ -248,6 +248,7 @@ write_df_in_chunks(df_preprocessed_non_empty_channels, output_path_preprocessed_
 
 # DATAFRAME WITHOUT SHORT MESSAGES
 df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_channels.copy()
+df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_channels_without_short[df_preprocessed_non_empty_channels_without_short['text_preprocessed'].str.split().apply(len) > considered_short_tokens]
 write_df_in_chunks(df_preprocessed_non_empty_channels_without_short, output_path_preprocessed_non_empty_english_channels_without_short_messages)
 del df_preprocessed_non_empty_channels_without_short
 gc.collect()
@@ -260,9 +261,8 @@ df_preprocessed_non_empty_english_channels_without_duplicates = df_preprocessed_
 print("len after drop_duplicates:", len(df_preprocessed_non_empty_english_channels_without_duplicates))
 
 #DROPPING SHORT MESSAGES
-token_len = df_preprocessed_non_empty_english_channels_without_duplicates['text_preprocessed'].str.split().str.len()
 print("len before dropping short message:", len(df_preprocessed_non_empty_english_channels_without_duplicates))
-df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = df_preprocessed_non_empty_english_channels_without_duplicates[token_len > considered_short_tokens]
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = df_preprocessed_non_empty_english_channels_without_duplicates[df_preprocessed_non_empty_english_channels_without_duplicates['text_preprocessed'].str.split().apply(len) > considered_short_tokens]
 print("len after dropping duplicates and short messages:", len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages))
 #write df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages
 df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.to_csv(output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', index=False, compression='gzip')
@@ -270,11 +270,10 @@ del df_preprocessed_non_empty_english_channels_without_duplicates_and_short_mess
 gc.collect()
 
 #SHORTS MESSAGES DATAFRAME
-short_df = df_preprocessed_non_empty_english_channels_without_duplicates[token_len <= considered_short_tokens]
+short_df = df_preprocessed_non_empty_english_channels_without_duplicates[df_preprocessed_non_empty_english_channels_without_duplicates['text_preprocessed'].str.split().apply(len) > considered_short_tokens]
 #write short_df to memory
 write_df_in_chunks(short_df, output_path_preprocessed_messages_only_with_short_messages)
 del short_df
-del token_len
 gc.collect()
 
 #SPAM DATAFRAM, naturally it contains also short messages

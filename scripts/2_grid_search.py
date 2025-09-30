@@ -103,7 +103,7 @@ level_depth = args.input
 print(f"#debug1 level_depth={level_depth}")  #debug1
 
 #input paths
-output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_short_messages_level_{level_depth}.tsv.gz"
+input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_short_messages_level_{level_depth}.tsv.gz"
 #output paths
 output_path_df_sampled = f"../results/levels/level_{level_depth}/grid_search/df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"../results/levels/level_{level_depth}/grid_search/grid_search_results_level_{level_depth}.csv"
@@ -148,8 +148,8 @@ print("#debug4 removed previous CSVs if existed")  #debug4
 print("[INFO] Pulizia completata: modelli, vectorizer e CSV resettati.")
 
 #dataframe creation and saving
-print(f"#debug5 reading: {output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages}")  #debug5
-df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
+print(f"#debug5 reading: {input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages}")  #debug5
+df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(input_path_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages, sep='\t', compression='gzip')
 print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
 print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
 print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
@@ -225,7 +225,7 @@ def not_already_tested(model_name, uc, hc):
 
 # define single-run function
 def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
-    print(f"#debug12 start run_single_run model={model_name} umap={umap_config} hdbscan={hdbscan_config}")  #debug12
+    print(f"#debug15 start run_single_run model={model_name} umap={umap_config} hdbscan={hdbscan_config}")  #debug15
     umap_model    = UMAP(**umap_config, random_state=SEED)
     hdbscan_model = HDBSCAN(**hdbscan_config)
 
@@ -252,7 +252,7 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
     os.makedirs(level_dir_bertopic_models, exist_ok=True)
     topic_model.save(os.path.join(level_dir_bertopic_models, suffix))  # salva come directory
     joblib.dump(topic_model.vectorizer_model, os.path.join(level_dir_vectorizers, f"vectorizer_{suffix}.pkl"))
-    print(f"#debug14 saved model/vectorizer suffix={suffix}")  #debug14
+    print(f"#debug16 saved model/vectorizer suffix={suffix}")  #debug16
 
     series = pd.Series(labels[labels != -1])
     result = {
@@ -380,7 +380,7 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
 
     # append to CSV
     temp_df = pd.DataFrame(batch_results)
-    print(f"#debug15 writing {len(temp_df)} rows to results")  #debug15
+    print(f"#debug17 writing {len(temp_df)} rows to results")  #debug15
     temp_df.to_csv(out_path_grid_search_results, mode='a', index=False, header=False)
     
 with open("completed_successfully.txt", "w") as f:
