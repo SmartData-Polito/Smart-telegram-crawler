@@ -233,13 +233,13 @@ df_preprocessed_non_empty_channels.loc[:, 'text_preprocessed'] = (
 df_preprocessed_non_empty_english_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['language'] == 'en']
 #write df_preprocessed_non_empty_channels to file
 write_df_in_chunks(df_preprocessed_non_empty_channels, output_path_preprocessed_messages)
-del df_preprocessed_non_empty_channels
-gc.collect()
 
 # DATAFRAME WITHOUT SHORT MESSAGES
 df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_channels.copy()
 write_df_in_chunks(df_preprocessed_non_empty_channels_without_short, output_path_preprocessed_non_empty_english_channels_without_short_messages)
 del df_preprocessed_non_empty_channels_without_short
+gc.collect()
+del df_preprocessed_non_empty_channels
 gc.collect()
 
 #DROPPING DUPLICATES
