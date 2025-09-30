@@ -228,6 +228,9 @@ df_preprocessed_non_empty_channels.loc[:, 'text_preprocessed'] = (
       .astype('string')
       .str.strip()
 )
+df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[
+    df_preprocessed_non_empty_channels['text_preprocessed'] != ""
+]
 
 # DATAFRAME OF ENGLISH ONLY MESSAGES
 df_preprocessed_non_empty_english_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['language'] == 'en']

@@ -100,6 +100,8 @@ parser.add_argument(
 )
 args = parser.parse_args()
 level_depth = args.input
+print(f"#debug1 level_depth={level_depth}")  #debug1
+
 #input paths
 output_path_preprocessed_english_messages = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_short_messages_level_{level_depth}.tsv.gz"
 #output paths
@@ -113,6 +115,7 @@ level_dir_embeddings = f"../results/levels/level_{level_depth}/grid_search/embed
 os.makedirs(level_dir_bertopic_models, exist_ok=True)
 os.makedirs(level_dir_vectorizers, exist_ok=True)
 os.makedirs(level_dir_embeddings, exist_ok=True)
+print(f"#debug2 dirs ready: {level_dir_bertopic_models}, {level_dir_vectorizers}, {level_dir_embeddings}")  #debug2
 
 # --- funzione helper per svuotare directory ---
 def empty_dir(dir_path: str):
@@ -130,6 +133,7 @@ def empty_dir(dir_path: str):
 # Svuota le cartellee
 empty_dir(level_dir_bertopic_models)
 empty_dir(level_dir_vectorizers)
+print("#debug3 emptied models/vectorizers dirs")  #debug3
 
 # --- rimuovi file CSV se esistono ---
 for f in [output_path_df_sampled, out_path_grid_search_results]:
@@ -139,16 +143,18 @@ for f in [output_path_df_sampled, out_path_grid_search_results]:
             print(f"[INFO] Rimosso file {f}")
     except Exception as e:
         print(f"[WARN] impossibile rimuovere {f}: {e}")
+print("#debug4 removed previous CSVs if existed")  #debug4
 
 print("[INFO] Pulizia completata: modelli, vectorizer e CSV resettati.")
 
-
 #dataframe creation and saving
+print(f"#debug5 reading: {output_path_preprocessed_english_messages}")  #debug5
 df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages = pd.read_csv(output_path_preprocessed_english_messages, sep='\t', compression='gzip')
 print("input accepted df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages some examples\n")
 print(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.head())
 print(f"len :{len(df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages)}")
 df_sampled = df_preprocessed_non_empty_english_channels_without_duplicates_and_short_messages.sample(frac=1, random_state=SEED)
+print(f"#debug6 df_sampled len={len(df_sampled)} saving to {output_path_df_sampled}")  #debug6
 df_sampled.to_csv(output_path_df_sampled, index=False)
 
 print("imported df_sampled")
@@ -168,7 +174,6 @@ texts =
   ["pizza", "and", "pasta"]
 ]
 """
-
 
 #get_metrics function definition
 def get_metrics(topic_model, texts=texts):
@@ -220,6 +225,7 @@ def not_already_tested(model_name, uc, hc):
 
 # define single-run function
 def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
+    print(f"#debug12 start run_single_run model={model_name} umap={umap_config} hdbscan={hdbscan_config}")  #debug12
     umap_model    = UMAP(**umap_config, random_state=SEED)
     hdbscan_model = HDBSCAN(**hdbscan_config)
 
@@ -231,28 +237,14 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
         top_n_words=20,
         language='english'
     )
+    t0 = time.time()
     topic_model.fit_transform(df_sampled['text_preprocessed'], embeddings=embeddings) #clustering
-
-    # reduced = [
-    #   [0.1, 0.2],   # Document 1
-    #   [5.0, 5.0],   # Document 2
-    #   [0.0, 0.3],   # Document 3
-    #   [0.2, 0.1]    # Document 4
-    # ]
-    # labels = np.array([0, 1, -1, 0])
-    # Document 1 → topic 0
-    # Document 2 → topic 1
-    # Document 3 → outlier (-1, not assigned to any topic)
-    # Document 4 → topic 0
+    print(f"#debug13 fit_transform done in {time.time()-t0:.2f}s")  #debug13
 
     diversity, coherence = get_metrics(topic_model)
     reduced = umap_model.transform(embeddings)
     labels  = np.array(topic_model.topics_)
     mask    = labels != -1
-    # Only compute silhouette if:
-    # - there are at least 2 non-outlier samples (mask.sum() > 1)
-    # - and at least 2 different clusters exist (len(np.unique(labels[mask])) > 1)
-    # Otherwise, return 0.0 because silhouette_score would be invalid.
     sil = (silhouette_score(reduced[mask], labels[mask])
            if mask.sum() > 1 and len(np.unique(labels[mask])) > 1 else 0.0)
 
@@ -260,9 +252,10 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
     os.makedirs(level_dir_bertopic_models, exist_ok=True)
     topic_model.save(os.path.join(level_dir_bertopic_models, suffix))  # salva come directory
     joblib.dump(topic_model.vectorizer_model, os.path.join(level_dir_vectorizers, f"vectorizer_{suffix}.pkl"))
+    print(f"#debug14 saved model/vectorizer suffix={suffix}")  #debug14
 
     series = pd.Series(labels[labels != -1])
-    return {
+    result = {
         'model': model_name,
         'umap_n_components': umap_config['n_components'],
         'umap_n_neighbors':  umap_config['n_neighbors'],
@@ -276,11 +269,14 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
         'min_topic':   int(series.value_counts().min()),
         'max_topic':   int(series.value_counts().max())
     }
+    print(f"#debug15 result summary: topics={result['n_topics']} outliers={result['n_outliers']} sil={result['silhouette']:.4f}")  #debug15
+    return result
 
 # Step 2: Set device & models
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
+print(f"#debug7 device={device} cpu_count={os.cpu_count()}")  #debug7
 
 # Step 3: vectorizer (unused in BERTopic instantiation here, but kept)
 vectorizer_model = CountVectorizer(ngram_range=(1,1), stop_words="english")
@@ -330,19 +326,25 @@ cols = [
 ]
 if not os.path.exists(out_path_grid_search_results):
     pd.DataFrame(columns=cols).to_csv(out_path_grid_search_results, index=False)
+    print(f"#debug8 created results file: {out_path_grid_search_results}")  #debug8
+else:
+    print(f"#debug8 results file exists: {out_path_grid_search_results}")  #debug8
 
 models = {
     'all-distilroberta-v1': SentenceTransformer('all-distilroberta-v1'),
     'paraphrase-MiniLM-L6-v2': SentenceTransformer('paraphrase-MiniLM-L6-v2'),
     'all-MiniLM-L6-v2': SentenceTransformer('all-MiniLM-L6-v2')
 }
+print(f"#debug9 models ready: {list(models.keys())}")  #debug9
 
 for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1', 'paraphrase-MiniLM-L6-v2'..
     path_emb = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/embedding_{model_name}_level_{level_depth}.npy"
     if os.path.exists(path_emb):
         print(f"Embedding già esistente: {model_name}")
         continue
+    print(f"#debug10 building embeddings for {model_name}")  #debug10
     model_instance = model_instance.to(device) # but the model on gpu if possible
+    t0 = time.time()
     embeddings = model_instance.encode(
         df_sampled['text_preprocessed'].tolist(),
         show_progress_bar=True,
@@ -350,6 +352,7 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
     )
     np.save(path_emb, embeddings)
     print(f"Salvato: {path_emb}")
+    print(f"#debug11 embeddings done for {model_name} in {time.time()-t0:.2f}s shape={embeddings.shape}")  #debug11
 
 for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1', 'paraphrase-MiniLM-L6-v2'..
     path_emb = f"../results/levels/level_{level_depth}/grid_search/embeddings_level_{level_depth}/embedding_{model_name}_level_{level_depth}.npy"
@@ -357,6 +360,7 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
         print(f"[⚠️] Missing embedding for {model_name}, skipped.")
         continue
     embeddings = np.load(path_emb)
+    print(f"#debug12 loaded embeddings {model_name} shape={embeddings.shape}")  #debug12
 
     # build param grid for this model
     param_grid = [
@@ -365,8 +369,10 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
         for hc in hdbscan_params
         if not_already_tested(model_name, uc, hc)
     ]
+    print(f"#debug13 {model_name} param_grid size={len(param_grid)}")  #debug13
 
     # run in parallel
+    print(f"#debug14 launching Parallel n_jobs={os.cpu_count()-1}")  #debug14
     batch_results = Parallel(n_jobs=os.cpu_count() - 1, verbose=5)(
         delayed(run_single_run)(model_name, embeddings, uc, hc) #run_single_run has arguments model_name, embeddings, uc, hc
         for uc, hc in param_grid
@@ -374,7 +380,9 @@ for model_name, model_instance in tqdm(models.items()): #'all-distilroberta-v1',
 
     # append to CSV
     temp_df = pd.DataFrame(batch_results)
+    print(f"#debug15 writing {len(temp_df)} rows to results")  #debug15
     temp_df.to_csv(out_path_grid_search_results, mode='a', index=False, header=False)
     
 with open("completed_successfully.txt", "w") as f:
     f.write("Grid search completata con successo.\n")
+print("#debug16 completed_successfully.txt written")  #debug16
