@@ -217,7 +217,12 @@ else:
     else:
         df_preprocessed_non_empty_channels = pd.DataFrame()
 
-        
+# ALL STRINGS
+df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels.dropna()
+df_preprocessed_non_empty_channels['text_preprocessed'] = (
+    df_preprocessed_non_empty_channels['text_preprocessed']
+      .astype('string').str.replace(r'\s+',' ',regex=True).str.strip()
+)
 
 # DATAFRAME OF ENGLISH ONLY MESSAGES
 df_preprocessed_non_empty_english_channels = df_preprocessed_non_empty_channels[df_preprocessed_non_empty_channels['language'] == 'en']
