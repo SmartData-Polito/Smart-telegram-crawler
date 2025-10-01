@@ -276,7 +276,7 @@ write_df_in_chunks(short_df, output_path_preprocessed_messages_only_with_short_m
 del short_df
 gc.collect()
 
-#SPAM DATAFRAM, naturally it contains also short messages
+#SPAM DATAFRAM, naturally  it contains also short messagess
 spam_df = (
     df_preprocessed_non_empty_english_channels
     .groupby(['channel_id', 'text_preprocessed'])
