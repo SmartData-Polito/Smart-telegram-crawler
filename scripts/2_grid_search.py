@@ -295,6 +295,6 @@ with section("GRID SEARCH"):
         temp_df.to_csv(out_path_grid_search_results, mode='a', index=False, header=False)
 
 # ===== COMPLETION FLAG ======================================
-with open("completed_successfully.txt", "w") as f:
+with open("grid_search_completed_successfully.txt", "w") as f:
     f.write("Grid search completata con successo.\n")
-p("#debug16 completed_successfully.txt written")
+p("#debug16 grid_search_completed_successfully.txt written")
