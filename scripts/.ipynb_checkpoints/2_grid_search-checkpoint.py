@@ -110,12 +110,12 @@ with section("READ TSV"):
     p("input accepted head:\n" + str(df_pre.head()))
     p(f"len :{len(df_pre)}")
 
-df_sampled = df_pre.sample(frac=1, random_state=SEED)
-df_sampled.to_csv(output_path_df_sampled, index=False)
-p(f"#debug6 df_sampled len={len(df_sampled)} saving to {output_path_df_sampled}")
-p("imported df_sampled")
+df_sampled_without_duplicates = df_pre.sample(frac=1, random_state=SEED)
+df_sampled_without_duplicates.to_csv(output_path_df_sampled, index=False)
+p(f"#debug6 df_sampled_without_duplicates len={len(df_sampled_without_duplicates)} saving to {output_path_df_sampled}")
+p("imported df_sampled_without_duplicates")
 
-texts = [str(s).split() for s in df_sampled['text_preprocessed'].tolist()]
+texts = [str(s).split() for s in df_sampled_without_duplicates['text_preprocessed'].tolist()]
 
 # ===== METRICHE ==============================================
 def get_metrics(topic_model, texts=texts):
@@ -151,7 +151,7 @@ def run_single_run(model_name, embeddings, umap_config, hdbscan_config):
     )
 
     t0 = time.perf_counter()
-    topic_model.fit_transform(df_sampled['text_preprocessed'], embeddings=embeddings)
+    topic_model.fit_transform(df_sampled_without_duplicates['text_preprocessed'], embeddings=embeddings)
     p(f"fit_transform: {time.perf_counter()-t0:.2f}s")
 
     t0 = time.perf_counter()
@@ -214,6 +214,7 @@ hdbscan_params = [
     {'min_cluster_size': 30},
     {'min_cluster_size': 50},
     {'min_cluster_size': 90},
+    {'min_cluster_size': 140},
 ]
 
 # ===== CSV RISULTATI (come il tuo) ===========================
@@ -247,7 +248,7 @@ with section("BUILD EMBEDDINGS"):
         model_instance = model_instance.to(device)
         t0 = time.perf_counter()
         embeddings = model_instance.encode(
-            df_sampled['text_preprocessed'].tolist(),
+            df_sampled_without_duplicates['text_preprocessed'].tolist(),
             show_progress_bar=True,
             device=device
         )
