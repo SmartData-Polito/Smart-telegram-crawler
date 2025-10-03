@@ -54,6 +54,7 @@ os.makedirs(final_best_dir, exist_ok=True)
 best_vectorizer_path   = os.path.join(final_best_dir, "best_vectorizer.pkl")
 best_model_pkl_path    = os.path.join(final_best_dir, "best_model.pkl")   # FILE unico richiesto
 best_note_path         = os.path.join(final_best_dir, "best_model_note")  # nota testuale
+best_note_path2 = os.path.join("./", "best_model_note")
 
 # --------------------
 # Pre-flight checks
@@ -224,10 +225,13 @@ else:
 joblib.dump(topic_model, best_model_pkl_path)
 print(f"Best model saved to single file: {best_model_pkl_path}")
 
-#Scrivi/sovrascrivi la nota
+#Scrivi/sovrascrivi le note
 with open(best_note_path, "w", encoding="utf-8") as f:
     f.write(f"{choice}: {suffix}\n")
 print(f"Wrote note: {best_note_path} -> '{choice}: {suffix}'")
+with open(best_note_path2, "w", encoding="utf-8") as f:
+    f.write(f"{choice}: {suffix}\n")
+print(f"Wrote note: {best_note_path2} -> '{choice}: {suffix}'")
 
 print(f"\nDone. Criterion tag: {choice} ({'forced via --suffix' if suffix_arg else 'selected by metric'})")
 print(f"Selected suffix: {suffix}")
