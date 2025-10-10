@@ -10,9 +10,9 @@ import shutil
 from bertopic import BERTopic
 
 '''
-python 2.1_choose_best_model.py --input 0 --choice coherence --suffix "paraphrase-MiniLM-L6-v2_umap5_umap5_u
-map0.0_hdbscan30"
+python 2.1_choose_best_model.py --input 0 --choice avg_score --suffix "paraphrase-MiniLM-L6-v2_umap5_umap5_umap0.0_hdbscan30"
 '''
+
 
 # --------------------
 # Parse args
