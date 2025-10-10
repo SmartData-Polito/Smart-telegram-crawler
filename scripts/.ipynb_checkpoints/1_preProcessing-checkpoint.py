@@ -192,8 +192,8 @@ def write_df_in_chunks(df, path, sep='\t', chunk_size=50000):
         first = False
 
 # Read input list
-df_first_nodes = pd.read_csv(input_path_df_political_nodes)
-print(df_first_nodes.head())
+df_nodes = pd.read_csv(input_path_df_political_nodes)
+print(df_nodes.head())
 
 if os.path.exists(output_path_preprocessed_messages):
     print("--- File already exists: {}".format(output_path_preprocessed_messages))
@@ -202,7 +202,7 @@ if os.path.exists(output_path_preprocessed_messages):
 else:
     #interate from extracted for every file with channels_id
     file_args = []
-    for _, row in df_first_nodes.iterrows():
+    for _, row in df_nodes.iterrows():
         channel_id = row['type_and_id']
         channel_path = os.path.join(extracted_dir, channel_id)
         files = glob(os.path.join(channel_path, '[0-9][0-9][0-9][0-9]-[0-1][0-9].tsv.gz'))
@@ -292,7 +292,7 @@ gc.collect()
 
 
 #CHANNELS WITHOUT MESSAGES DATAFRAME
-expected_channels = set(df_first_nodes['type_and_id'])  # all channels we expect to find from the input nodes file
+expected_channels = set(df_nodes['type_and_id'])  # all channels we expect to find from the input nodes file
 seen_channels_any = set(df_preprocessed_non_empty_english_channels['channel_id'].unique())  # all channels actually present in the preprocessed messages
 missing_channels_any = sorted(expected_channels - seen_channels_any)  # channels that are expected but have no messages
 df_channels_without_messages = pd.DataFrame({'channel_id': missing_channels_any})  # dataframe with the list of channels without messages
