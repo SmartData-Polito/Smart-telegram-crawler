@@ -73,7 +73,7 @@ class PreProcessing:
         self.noverbs = noverbs
         self.noentities = noentities
         self.remove_list = remove_list
-        self.punctuation = r'[!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~]'
+        self.punctuation = r'[!"#$%&\'()*+,\-./:;<=>?@\\^_`{|}~]'
         self.stopwords = stopwords
 
     def _process_text(self, text: Union[str, list], function: Callable) -> Union[str, list]:
