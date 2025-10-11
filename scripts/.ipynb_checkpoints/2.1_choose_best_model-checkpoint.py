@@ -11,6 +11,7 @@ from bertopic import BERTopic
 
 '''
 python 2.1_choose_best_model.py --input 0 --choice avg_score --suffix "paraphrase-MiniLM-L6-v2_umap5_umap5_umap0.0_hdbscan30"
+python 2.1_choose_best_model.py --input 1 --choice coherence --suffix "paraphrase-MiniLM-L6-v2_umap10_umap5_umap0.0_hdbscan30"
 '''
 
 
@@ -54,7 +55,7 @@ os.makedirs(final_best_dir, exist_ok=True)
 best_vectorizer_path   = os.path.join(final_best_dir, "best_vectorizer.pkl")
 best_model_pkl_path    = os.path.join(final_best_dir, "best_model.pkl")   # FILE unico richiesto
 best_note_path         = os.path.join(final_best_dir, "best_model_note")  # nota testuale
-best_note_path2 = os.path.join("./", "best_model_note")
+best_note_path2 = os.path.join("./", f"best_model_level_{level_depth}_note")
 
 # --------------------
 # Pre-flight checks

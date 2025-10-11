@@ -23,6 +23,10 @@ from bertopic import BERTopic
 python 2_topics_words.py   --input 0   --suffix paraphrase-MiniLM-L6-v2_uma
 p5_umap5_umap0.0_hdbscan30   --label avg_score   --out topics_L0_avg_forced.txt   --top_
 n 20
+
+python 2_topics_words.py   --input 1   --suffix paraphrase-MiniLM-L6-v2_uma
+p5_umap5_umap0.0_hdbscan30   --label coherence   --out topics_L1_avg_forced.txt   --top_
+n 20
 '''
 
 # --------------------

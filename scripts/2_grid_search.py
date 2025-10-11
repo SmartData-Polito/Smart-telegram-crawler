@@ -210,11 +210,11 @@ umap_params = [
 
 hdbscan_params = [
     {'min_cluster_size': 10},
-    {'min_cluster_size': 15},
+    #{'min_cluster_size': 15},
     {'min_cluster_size': 30},
-    {'min_cluster_size': 50},
-    {'min_cluster_size': 90},
-    {'min_cluster_size': 140},
+    #{'min_cluster_size': 50},
+    #{'min_cluster_size': 90},
+    #{'min_cluster_size': 140},
 ]
 
 # ===== CSV RISULTATI (come il tuo) ===========================
