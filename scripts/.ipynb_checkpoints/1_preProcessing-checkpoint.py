@@ -73,7 +73,7 @@ class PreProcessing:
         self.noverbs = noverbs
         self.noentities = noentities
         self.remove_list = remove_list
-        self.punctuation = r'[!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~]'
+        self.punctuation = r'[!"#$%&\'()*+,\-./:;<=>?@\\^_`{|}~]'
         self.stopwords = stopwords
 
     def _process_text(self, text: Union[str, list], function: Callable) -> Union[str, list]:
@@ -247,7 +247,7 @@ df_preprocessed_non_empty_english_channels = df_preprocessed_non_empty_channels[
 write_df_in_chunks(df_preprocessed_non_empty_channels, output_path_preprocessed_messages)
 
 # DATAFRAME WITHOUT SHORT MESSAGES
-df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_channels.copy()
+df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_english_channels.copy()
 df_preprocessed_non_empty_channels_without_short = df_preprocessed_non_empty_channels_without_short[df_preprocessed_non_empty_channels_without_short['text_preprocessed'].str.split().apply(len) > considered_short_tokens]
 write_df_in_chunks(df_preprocessed_non_empty_channels_without_short, output_path_preprocessed_non_empty_english_channels_without_short_messages)
 del df_preprocessed_non_empty_channels_without_short
