@@ -1,1 +1,5 @@
 coherence: paraphrase-MiniLM-L6-v2_umap10_umap5_umap0.0_hdbscan30
+        umap_config['n_components'],
+        'umap_n_neighbors': umap_config['n_neighbors'],
+        'umap_min_dist': umap_config['min_dist'],
+        'hdbscan_min_cluster_size': hdbscan_config['min_cluster_size'],
