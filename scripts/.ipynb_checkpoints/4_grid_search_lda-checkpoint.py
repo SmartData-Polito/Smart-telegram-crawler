@@ -7,6 +7,11 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_MAX_THREADS"] = "1"
 
+"""
+here we use scikit learn with EM
+istead of the gensim version with gibbs sampling
+"""
+
 import time
 import random
 import argparse
@@ -107,11 +112,66 @@ raw_docs = df_sampled['text_preprocessed'].tolist()
 num_docs = int(len(raw_docs))
 
 # ===================== IPERPARAMETRI ADATTIVI =======================
+
 def choose_num_topics(n_docs: int) -> list[int]:
+    """
+    Scelta automatica di 2–3 valori di 'num_topics' (k) per l'LDA in base al numero di documenti.
+
+    Logica:
+    - Più documenti ⇒ più temi servono per descrivere il corpus.
+    - Usa la radice quadrata per far crescere k lentamente, evitando esplosioni su dataset enormi.
+    - Applica limiti min/max: minimo 10, massimo 400.
+    - Restituisce tre valori: uno base, uno minore (~0.6x) e uno maggiore (~1.4x).
+
+    Esempio:
+      n_docs = 10_000
+      √(10000/10) = √1000 ≈ 31.6 → base = 32
+      → valori restituiti = [19, 32, 45]
+    """
     k_base = int(np.clip(round(np.sqrt(max(n_docs, 1) / 10.0)), 10, 400))
-    return sorted({max(10, int(round(k_base*0.6))), k_base, min(400, int(round(k_base*1.4)))})
+    return sorted({
+        max(10, int(round(k_base * 0.6))),   # valore più piccolo (dataset più generico)
+        k_base,                              # valore medio di riferimento
+        min(400, int(round(k_base * 1.4)))   # valore più grande (temi più granulari)
+    })
+
 
 def compute_adaptive_vectorizer_params(n_docs: int):
+    """
+    Calcola i parametri per il CountVectorizer in base alla dimensione del dataset.
+
+    Parametri:
+    ----------
+    n_docs : int
+        Numero totale di documenti nel dataset (ad es. 2_000, 10_000, 50_000...).
+
+    Output:
+    -------
+    Restituisce una tupla:
+        (min_df_docs, max_df_fraction, ngram_range, max_features)
+
+    Spiegazione:
+    -------------
+     min_df_docs  → filtro per parole troppo rare
+        - Numero minimo di documenti in cui una parola deve comparire.
+        - Evita termini casuali o con errori di battitura.
+        - Formula:  min_df_docs = max(2, round(0.001 * n_docs))
+        Esempio: n_docs = 20_000 → 0.001 * 20000 = 20 → min_df_docs = 20
+
+     max_df_fraction  → filtro per parole troppo comuni
+        - Parole presenti in troppi documenti sono inutili (stopword generalizzate).
+        - 0.95 se dataset < 5000 docs, 0.90 altrimenti.
+        Esempio: n_docs = 20_000 → max_df_fraction = 0.90
+
+     ngram_range  → tipo di combinazioni di parole
+        - (1,1) → solo singole parole
+        - (1,2) → anche coppie (es. “white house”)
+        - Dataset grandi → (1,2), piccoli → (1,1)
+
+     max_features  → massimo numero di termini nel vocabolario
+        - None si significa nessun limite se dataset piccolo (<30k)
+        - 50.000 se dataset grande (>30k)
+    """
     min_df_docs = max(2, int(round(0.001 * n_docs)))
     max_df_fraction = 0.95 if n_docs < 5000 else 0.90
     ngram_range = (1, 1) if n_docs < 5000 else (1, 2)
@@ -119,11 +179,31 @@ def compute_adaptive_vectorizer_params(n_docs: int):
     return min_df_docs, max_df_fraction, ngram_range, max_features
 
 def compute_adaptive_lda_params(n_docs: int):
+    """
+    Parametri di addestramento adattivi per LDA (Latent Dirichlet Allocation).
+
+    - method: 'batch' per dataset piccoli (<5k), 'online' per dataset grandi → 
+      'online' aggiorna incrementale, riduce memoria.
+
+    - batch_size: quanti documenti processare per volta.
+      Calcolato come n_docs / 50, ma limitato tra 64 e 512.
+      Esempio: 20_000 docs → batch_size = 20_000/50 = 400
+
+    - max_iter: iterazioni massime per convergenza:
+      100 iterazioni per dataset piccoli (più stabilità), 50 per grandi (performance).
+      poichè si usa la versione scikit-learn di lda viene usato variation EM al poto di gibbs sampling
+
+    - decay_candidates: possibili valori per il learning rate (quanto il modello "dimentica" il passato).
+      0.5 = apprendimento più stabile, 0.7 = più reattivo ai nuovi batch.
+
+    Restituisce tuple: (method, batch_size, max_iter, decay_candidates)
+    """
     method = 'batch' if n_docs < 5000 else 'online'
     batch_size = max(64, min(512, n_docs // 50))
     max_iter = 100 if n_docs < 10000 else 50
     decay_candidates = [0.5, 0.7]
     return method, batch_size, max_iter, decay_candidates
+
 
 candidate_num_topics = choose_num_topics(num_docs)
 min_df_docs, max_df_fraction, ngram_range, max_features = compute_adaptive_vectorizer_params(num_docs)
