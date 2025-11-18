@@ -1,0 +1,11 @@
+-consideriamo come politica tutti quei temi che possono essere discussi durante un dibattito elettorale tra cadidati e presidenti del 2024.
+-ora per ogni topic rimanda dimmi se lo metteresti come topic di politica o meno, scelgi
+con cura e ricordati di non saltare topic e controlla di averli messi tutti
+#to change
+human_politics_topics=[]
+human_non_politics_topics=[]
+machine_politics_topics=[]
+machine_non_politics_topics=[]
+
+
+per ora riempi machine e human metti random

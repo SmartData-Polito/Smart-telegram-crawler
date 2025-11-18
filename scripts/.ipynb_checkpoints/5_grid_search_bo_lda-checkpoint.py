@@ -135,44 +135,17 @@ def choose_num_topics(n_docs: int) -> list[int]:
     })
 
 def vectorizer_params(n_docs: int):
-    # numero minimo di documenti in cui una parola deve apparire per essere considerata
-    # 0.1% dei documenti, ma almeno 2 (serve a filtrare parole troppo rare)
     min_df_docs = max(2, int(round(0.001 * n_docs)))
-
-    # soglia massima di frequenza documentale:
-    # se il corpus è piccolo (<5000 doc), permettiamo parole fino al 95% dei doc
-    # se grande, restringiamo al 90% per evitare parole troppo comuni
     max_df_frac = 0.95 if n_docs < 5000 else 0.90
-
-    # tipo di n-grammi: solo unigrammi per dataset piccoli, bigrammi inclusi per dataset grandi
     ngram_range = (1, 1) if n_docs < 5000 else (1, 2)
-
-    # numero massimo di feature (parole o n-grammi):
-    # nessun limite per dataset piccoli (<30k doc), massimo 50k feature altrimenti
     max_features = None if n_docs < 30000 else 50000
-
-    # ritorna tutti i parametri del CountVectorizer
     return min_df_docs, max_df_frac, ngram_range, max_features
 
-
 def lda_params(n_docs: int):
-    # modalità di apprendimento:
-    # 'batch' = su tutto il dataset (stabile ma lenta)
-    # 'online' = mini-batch incrementali (più efficiente su molti documenti)
     method = 'batch' if n_docs < 5000 else 'online'
-
-    # dimensione del batch: almeno 64, massimo 512, o 1/50 del dataset
     batch_size = max(64, min(512, n_docs // 50))
-
-    # numero massimo di iterazioni EM:
-    # più alto (100) per dataset piccoli, dimezzato (50) per dataset grandi
     max_iter = 100 if n_docs < 10000 else 50
-
-    # learning_decay controlla quanto i pesi "dimenticano" le iterazioni precedenti (solo in 'online')
-    # valori più bassi → apprendimento più aggressivo; 0.7 è uno standard bilanciato
     learning_decay = 0.7
-
-    # ritorna tutti i parametri per la creazione del modello LDA
     return method, batch_size, max_iter, learning_decay
 
 k_candidates = choose_num_topics(num_docs)
@@ -200,23 +173,20 @@ with section("VECTORIZER FIT"):
             ngram_range=ngram_range,
             max_features=max_features
         )
-        #costruisce una matrice sparsa BoW da usare come input per l’LDA
         X_full = vectorizer.fit_transform(docs_full)
         joblib.dump(vectorizer, path_vectorizer)
         save_npz(path_X, X_full)
         p(f"vectorizer saved → {path_vectorizer} | X saved → {path_X} | shape={X_full.shape}")
 
-#es ['firewall' 'logs' 'rules' 'updated']
 vocab = vectorizer.get_feature_names_out()
 
 # ============================= METRICHE =============================
 def top_words_from_topics(lda_model: SKL_LDA, vocabulary, topn: int = 10) -> list[list[str]]:
     """Prende le top parole per topic dalla matrice componenti (topic-word)."""
-    W = lda_model.components_ #matrice K × V: K = numero di topic (n_components) V = numero di termini nel vocabolario (stesso ordine del CountVectorizer) 
-    #L’elemento W[t, i] è il peso della parola i nel topic t
+    W = lda_model.components_
     topics_words = []
-    for t in range(W.shape[0]): # itera sui topic
-        idx = np.argsort(W[t])[::-1][:topn] # prende i primi topn indici delle parole per i topic t (le migliori N parole).
+    for t in range(W.shape[0]):
+        idx = np.argsort(W[t])[::-1][:topn]
         topics_words.append([vocabulary[i] for i in idx])
     return topics_words
 
@@ -308,17 +278,17 @@ def train_and_collect(k_topics: int) -> dict:
         lda = joblib.load(path_model); p(f"[RESUME] loaded model {path_model}")
     else:
         lda = SKL_LDA(
-            n_components=int(k_topics),       # numero di topic da estrarre (K)
-            learning_method=lda_method,       # 'batch' o 'online' → modalità di aggiornamento dell’algoritmo EM
-            batch_size=int(lda_batch_size),   # dimensione del mini-batch (solo se 'online')
-            max_iter=int(lda_max_iter),       # numero massimo di iterazioni dell’algoritmo EM
-            learning_decay=float(lda_decay),  # tasso di decadimento per l’aggiornamento dei pesi (solo 'online')
-            random_state=SEED,                # seme random per garantire riproducibilità
-            evaluate_every=0,                 # ogni quante iterazioni valutare il bound log-likelihood (0 = mai)
-            verbose=2,                        # livello di log: 0 silenzioso, 1 base, 2 dettagliato
-            doc_topic_prior=None,             # α (prior sui topic nei documenti) → None = stimato automaticamente
-            topic_word_prior=None,            # β (prior sulle parole nei topic) → None = stimato automaticamente
-            n_jobs=1                          # numero di thread/CPU da usare (1 = single thread)
+            n_components=int(k_topics),
+            learning_method=lda_method,
+            batch_size=int(lda_batch_size),
+            max_iter=int(lda_max_iter),
+            learning_decay=float(lda_decay),
+            random_state=SEED,
+            evaluate_every=0,
+            verbose=2,
+            doc_topic_prior=None,
+            topic_word_prior=None,
+            n_jobs=1
         )
         t0 = time.perf_counter()
         lda.fit(X_full)
@@ -328,41 +298,34 @@ def train_and_collect(k_topics: int) -> dict:
     topics_words = top_words_from_topics(lda, vocab, topn=10)
     diversity, c_v, c_npmi = compute_all_metrics(topics_words, tokens_full)
     
-    #con lda.fit ha imparato una distribuzione parola→topic (components_): quanto ogni parola appartiene a ciascun topic
-    #ma non ancora quanto ogni documento appartiene a ciascun topic.
-    #cioe': P(topic∣document)
-    #input: X_full = matrice “documenti × parole” (bag-of-words)
-    #output: doc_topic = matrice “documenti × topic”
     doc_topic = lda.transform(X_full)
     balance, eff_k, min_topic_size, max_topic_size = topic_balance(doc_topic)
 
     return dict(
-        k=int(k_topics),                    # numero di topic scelto (best k trovato da Optuna)
-        learning_method=str(lda_method),    # 'batch' o 'online' → metodo di aggiornamento EM usato da LDA
-        batch_size=int(lda_batch_size),     # numero di documenti per ogni mini-batch (solo in 'online')
-        max_iter=int(lda_max_iter),         # numero massimo di iterazioni dell’algoritmo EM
-        learning_decay=float(lda_decay),    # fattore di decadimento (quanto i batch nuovi influenzano i pesi)
-
-        coherence_cv=float(c_v),            # metrica di coerenza C_V (basata su similarità tra parole nei topic)
-        coherence_npmi=float(c_npmi),       # metrica NPMI (Normalized Pointwise Mutual Information)
-        diversity=float(diversity),         # misura quanto le top parole dei topic sono diverse tra loro
-        balance=float(balance),             # uniformità delle dimensioni dei topic (1 = perfettamente bilanciati)
-
-        effective_topics=int(eff_k),        # numero effettivo di topic non vuoti (almeno un documento assegnato)
-        min_topic=int(min_topic_size),      # numero di documenti nel topic più piccolo
-        max_topic=int(max_topic_size),      # numero di documenti nel topic più grande
-
-        vocab_size=int(len(vocab)),         # dimensione del vocabolario (numero di feature nel BoW)
-        n_docs=int(num_docs),               # numero totale di documenti usati per addestrare il modello
-
-        model_path=path_model,              # percorso file .joblib dove è salvato il modello LDA
-        vectorizer_path=path_vec,           # percorso file .joblib del CountVectorizer associato
-        suffix=suffix                       # stringa descrittiva (firma dei parametri: k, ngram, min_df, ecc.)
+        k=int(k_topics),
+        learning_method=str(lda_method),
+        batch_size=int(lda_batch_size),
+        max_iter=int(lda_max_iter),
+        learning_decay=float(lda_decay),
+        coherence_cv=float(c_v),
+        coherence_npmi=float(c_npmi),
+        diversity=float(diversity),
+        balance=float(balance),
+        effective_topics=int(eff_k),
+        min_topic=int(min_topic_size),
+        max_topic=int(max_topic_size),
+        vocab_size=int(len(vocab)),
+        n_docs=int(num_docs),
+        model_path=path_model,
+        vectorizer_path=path_vec,
+        suffix=suffix
     )
 
 
 # ============================ OPTIMIZATION ==========================
 with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
+    tuning_start = time.perf_counter()
+    
     # range di k
     k_min, k_max = max(10, min(k_candidates)), min(400, max(k_candidates))
     p(f"[OPTUNA] k range = [{k_min}, {k_max}]")
@@ -371,15 +334,7 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
     opt_frac = float(args.optuna_frac)
     rng = np.random.RandomState(SEED)
     n_tune = max(100, int(np.ceil(opt_frac * num_docs)))
-    # tune_idx contains the indexes of the choosen documents for tuning
     tune_idx = rng.choice(num_docs, size=n_tune, replace=False)
-     #X_tune ha shape (n_tune, n_features)
-    #(0, 1)  1
-    #(0, 2)  1
-    #(0, 5)  1
-    #riga 0, colonna 1 (firewall): valore 1
-    #riga 0, colonna 2 (log): valore 1
-    #riga 0, colonna 5 (rules): valore 1
     X_tune = X_full[tune_idx]
     tokens_tune = [tokens_full[i] for i in tune_idx]
     p(f"[OPTUNA] tuning on {n_tune}/{num_docs} docs ({100*opt_frac:.1f}%)")
@@ -402,18 +357,20 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
         )
         lda.fit(X_tune)
         topics_words = top_words_from_topics(lda, vocab, topn=10)
-        c_v = compute_cv_only(topics_words, tokens_tune)  # SOLO c_v nei trial
+        c_v = compute_cv_only(topics_words, tokens_tune)
         trial.set_user_attr("coh_cv", float(c_v))
         return float(c_v)
 
     sampler = TPESampler(seed=SEED, multivariate=True, n_startup_trials=5)
     study = optuna.create_study(direction="maximize", sampler=sampler)
-    n_trials = min(30, k_max - k_min + 1)  # semplice euristica
+    n_trials = min(30, k_max - k_min + 1)
     p(f"[OPTUNA] running {n_trials} trials…")
     study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
 
     best_k = int(study.best_trial.params["k"])
     best_cv = float(study.best_trial.user_attrs.get("coh_cv"))
+    
+    tuning_seconds = time.perf_counter() - tuning_start
     p(f"[OPTUNA] best k={best_k} | c_v(subset)={best_cv:.4f}")
 
     # log minimale dei trial
@@ -432,7 +389,7 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
         "k_min": k_min,
         "k_max": k_max,
         "optuna_frac": opt_frac,
-        "n_tune_docs": int(X_tune.shape[0]), #X_tune.shape[0] = numero di righe = numero di documenti per il tuning
+        "n_tune_docs": int(X_tune.shape[0]),
         "seed": SEED,
         "timestamp_utc": datetime.utcnow().isoformat(timespec="seconds") + "Z"
     }
@@ -446,7 +403,10 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
         p("[TUNE-ONLY] Salvo comunque modello e riga risultati con best_k.")
 
     # train finale su 100% + metriche complete (sempre eseguito)
+    training_start = time.perf_counter()
     row = train_and_collect(best_k)
+    training_seconds = time.perf_counter() - training_start
+    
     df_new = pd.DataFrame([row])
     df_new['avg_score_robust'] = avg_score_robust(df_new)
 
@@ -464,6 +424,14 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
     p(f"[OPTUNA] appended best-k row; total rows = {len(df_merged)}")
 
 # ======================== COMPLETION FLAG ===========================
+total_seconds = time.perf_counter() - START_TS
+
+# FORMATO MINIMALE RICHIESTO
+minimal_text = f"""Total Time: {total_seconds:.2f}s
+Tuning Time (10%): {tuning_seconds:.2f}s
+Training Time (100%): {training_seconds:.2f}s
+Best K: {best_k}
+"""
 with open(os.path.join(base_root, "grid_search_lda_completed_successfully.txt"), "w") as f:
-    f.write("LDA (Optuna su k con subset, c_v) completata con successo.\n")
+    f.write(minimal_text)
 p("#debug16 grid_search_lda_completed_successfully.txt written")
