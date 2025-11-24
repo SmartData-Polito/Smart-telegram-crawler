@@ -10,8 +10,10 @@ os.environ["NUMEXPR_MAX_THREADS"] = "1"
 """
 LDA (scikit-learn, variational EM) + Optuna (TPESampler) per ottimizzare SOLO k.
 Nei trial (subset, default 10%) si massimizza c_v.
-Alla fine si riallena su 100% e si calcolano tutte le metriche (c_v, c_npmi, diversity, balance).
-Se si usa --tune_only, ora COMUNQUE salva modello e risultati finali.
+Versione ottimizzata:
+ - salva in grid_search_lda_optimized
+ - nel modello finale NON calcola coherence/diversity/npmi/balance
+ - riduce il numero di trial Optuna
 """
 
 import time
@@ -28,7 +30,7 @@ from contextlib import contextmanager
 from sklearn.decomposition import LatentDirichletAllocation as SKL_LDA
 from sklearn.feature_extraction.text import CountVectorizer
 
-from octis.evaluation_metrics.diversity_metrics import TopicDiversity
+# usato solo per Optuna (c_v sui trial)
 from octis.evaluation_metrics.coherence_metrics import Coherence
 
 from scipy.sparse import save_npz, load_npz
@@ -61,7 +63,10 @@ def section(name: str):
 SEED = 42
 random.seed(SEED); np.random.seed(SEED)
 
-parser = argparse.ArgumentParser(description="LDA + Optuna (TPE) su k, maximize c_v (subset) + train finale 100%")
+# numero di job paralleli per LDA (−1 = usa tutti i core disponibili)
+N_JOBS = 4
+
+parser = argparse.ArgumentParser(description="LDA + Optuna (TPE) su k, maximize c_v (subset) + train finale 100% [optimized]")
 parser.add_argument("--input", type=str, default="0")
 parser.add_argument("--resume", action="store_true")
 parser.add_argument("--optuna_frac", type=float, default=0.10, help="frazione di documenti per i trial (0<frac<=1)")
@@ -76,7 +81,10 @@ p(f"level_depth={level_depth}")
 
 # ============================== PATHS ===============================
 input_path = f"../results/levels/level_{level_depth}/preProcessing/preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
-base_root = f"../results/levels/level_{level_depth}/grid_search_lda/"
+
+# *** CHANGED: nuova cartella base per versione ottimizzata
+base_root = f"../results/levels/level_{level_depth}/grid_search_lda_optimized/"
+
 output_path_df_sampled = f"{base_root}df_sampled_level_{level_depth}.csv"
 out_path_grid_search_results = f"{base_root}grid_search_results_level_{level_depth}.csv"
 dir_models        = f"{base_root}lda_models_level_{level_depth}/"
@@ -120,6 +128,13 @@ df_all['text_preprocessed'] = df_all['text_preprocessed'].astype(str)
 df_all.to_csv(output_path_df_sampled, index=False)
 p(f"#debug6 df_sampled len={len(df_all)} saving to {output_path_df_sampled}")
 
+"""
+tokens_full = [
+   ["welcome", "republican", "party", "proudly", "loudly", "support"],
+   ["dear", "holders", "problems", "distribution", "tokens", "staking"],
+   ...
+]
+"""
 tokens_full = [s.split() for s in df_all['text_preprocessed'].tolist()]
 docs_full = df_all['text_preprocessed'].tolist()
 num_docs = int(len(docs_full))
@@ -137,14 +152,14 @@ def choose_num_topics(n_docs: int) -> list[int]:
 def vectorizer_params(n_docs: int):
     min_df_docs = max(2, int(round(0.001 * n_docs)))
     max_df_frac = 0.95 if n_docs < 5000 else 0.90
-    ngram_range = (1, 1) if n_docs < 5000 else (1, 2)
+    ngram_range = (1, 1) 
     max_features = None if n_docs < 30000 else 50000
     return min_df_docs, max_df_frac, ngram_range, max_features
 
 def lda_params(n_docs: int):
     method = 'batch' if n_docs < 5000 else 'online'
     batch_size = max(64, min(512, n_docs // 50))
-    max_iter = 100 if n_docs < 10000 else 50
+    max_iter = 50 if n_docs < 10000 else 25
     learning_decay = 0.7
     return method, batch_size, max_iter, learning_decay
 
@@ -182,7 +197,7 @@ with section("VECTORIZER FIT"):
 
 vocab = vectorizer.get_feature_names_out()
 
-# ============================= METRICHE =============================
+# ============================= METRICHE (solo per Optuna) ===========
 def top_words_from_topics(lda_model: SKL_LDA, vocabulary, topn: int = 10) -> list[list[str]]:
     """Prende le top parole per topic dalla matrice componenti (topic-word)."""
     W = lda_model.components_
@@ -192,72 +207,22 @@ def top_words_from_topics(lda_model: SKL_LDA, vocabulary, topn: int = 10) -> lis
         topics_words.append([vocabulary[i] for i in idx])
     return topics_words
 
-def compute_all_metrics(topics_words, tokenized_docs):
-    """Metriche complete (usate solo sul modello finale 100%)."""
-    diversity = float(TopicDiversity(topk=10).score({"topics": topics_words}))
-    c_v       = float(Coherence(topk=10, texts=tokenized_docs, measure='c_v').score({"topics": topics_words}))
-    c_npmi    = float(Coherence(topk=10, texts=tokenized_docs, measure='c_npmi').score({"topics": topics_words}))
-    return diversity, c_v, c_npmi
-
 def compute_cv_only(topics_words, tokenized_docs):
     """Solo c_v (per i trial Optuna, calcolata sul subset)."""
-    return float(Coherence(topk=10, texts=tokenized_docs, measure='c_v').score({"topics": topics_words}))
+    return float(
+        Coherence(
+            topk=10,
+            texts=tokenized_docs,
+            measure='c_v'
+        ).score({"topics": topics_words})
+    )
 
-def topic_balance(doc_topic_prob: np.ndarray):
-    """Semplice misura di uniformità delle assegnazioni documento→topic."""
-    assigned = doc_topic_prob.argmax(axis=1)
-    counts = pd.Series(assigned).value_counts()
-    if counts.empty:
-        return 0.0, 0, 0, 0
-    min_size, max_size = int(counts.min()), int(counts.max())
-    balance = 1.0 - (max_size - min_size) / float(len(assigned))
-    return float(np.clip(balance, 0.0, 1.0)), int(counts.nunique()), min_size, max_size
-
-# ========== NORMALIZZAZIONE ROBUSTA ==========
-def robust_minmax_series(values: pd.Series, q_low=0.10, q_high=0.90) -> pd.Series:
-    s = pd.to_numeric(values, errors="coerce").astype("float64")
-    lo, hi = s.quantile(q_low), s.quantile(q_high)
-    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
-        return pd.Series(np.full(len(s), 0.5, dtype="float64"), index=s.index)
-    return ((s - lo) / (hi - lo)).clip(0, 1).astype("float64")
-
-def avg_score_robust(df: pd.DataFrame) -> pd.Series:
-    parts, weights = [], []
-    if 'coherence_cv' in df.columns:
-        parts.append(robust_minmax_series(df['coherence_cv'])); weights.append(0.4)
-    if 'diversity' in df.columns:
-        parts.append(robust_minmax_series(df['diversity']));    weights.append(0.3)
-    if 'coherence_npmi' in df.columns:
-        npmi01 = ((pd.to_numeric(df['coherence_npmi'], errors="coerce").astype("float64") + 1.0) / 2.0).clip(0, 1)
-        parts.append(robust_minmax_series(npmi01));              weights.append(0.2)
-    if 'balance' in df.columns:
-        parts.append(robust_minmax_series(df['balance']));       weights.append(0.1)
-    if not parts:
-        return pd.Series(np.nan, index=df.index, dtype="float64")
-    wsum = sum(weights); weights = [w/wsum for w in weights]
-    stacked = np.vstack([s.fillna(0.0).to_numpy(dtype="float64") for s in parts])
-    return pd.Series(np.average(stacked, axis=0, weights=weights), index=df.index, dtype="float64")
-
-# ======================== CSV HEADER ================================
+# ======================== CSV HEADER (semplificato) =================
 result_columns = [
     'k','learning_method','batch_size','max_iter','learning_decay',
-    'coherence_cv','coherence_npmi','diversity','balance',
-    'effective_topics','min_topic','max_topic','vocab_size','n_docs',
-    'model_path','vectorizer_path','suffix',
-    'avg_score_robust'
+    'vocab_size','n_docs',
+    'model_path','vectorizer_path','suffix'
 ]
-
-def enforce_result_dtypes(df: pd.DataFrame) -> pd.DataFrame:
-    float_cols = ['learning_decay','coherence_cv','coherence_npmi','diversity','balance','avg_score_robust']
-    int_cols   = ['k','batch_size','max_iter','effective_topics','min_topic','max_topic','vocab_size','n_docs']
-    str_cols   = ['learning_method','model_path','vectorizer_path','suffix']
-    for c in float_cols:
-        if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce").astype("float64")
-    for c in int_cols:
-        if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0).astype("int64")
-    for c in str_cols:
-        if c in df.columns: df[c] = df[c].astype("string")
-    return df
 
 if not os.path.exists(out_path_grid_search_results):
     pd.DataFrame(columns=result_columns).to_csv(out_path_grid_search_results, index=False)
@@ -265,9 +230,9 @@ if not os.path.exists(out_path_grid_search_results):
 else:
     p(f"#debug8 results file exists: {out_path_grid_search_results}")
 
-# =========================== TRAIN + METRICHE =======================
+# =========================== TRAIN + SAVE MODEL =====================
 def train_and_collect(k_topics: int) -> dict:
-    """Fit su 100% e metriche complete (usata SOLO dopo l'ottimizzazione)."""
+    """Fit su 100% e salvataggio modello (NO metriche pesanti)."""
     suffix = (
         f"LDA_k{k_topics}_ng{ngram_range[0]}-{ngram_range[1]}_"
         f"minDF{min_df_docs}_maxDF{max_df_frac}_maxF{max_features or 'None'}_"
@@ -277,7 +242,8 @@ def train_and_collect(k_topics: int) -> dict:
     path_vec   = os.path.join(dir_vectorizers, f"vectorizer_{suffix}.joblib")
 
     if os.path.exists(path_model) and args.resume:
-        lda = joblib.load(path_model); p(f"[RESUME] loaded model {path_model}")
+        lda = joblib.load(path_model)
+        p(f"[RESUME] loaded model {path_model}")
     else:
         lda = SKL_LDA(
             n_components=int(k_topics),
@@ -290,18 +256,13 @@ def train_and_collect(k_topics: int) -> dict:
             verbose=2,
             doc_topic_prior=None,
             topic_word_prior=None,
-            n_jobs=1
+            n_jobs=N_JOBS
         )
         t0 = time.perf_counter()
         lda.fit(X_full)
         p(f"fit LDA(K={k_topics}, decay={lda_decay}) in {time.perf_counter()-t0:.2f}s")
-        joblib.dump(lda, path_model); joblib.dump(vectorizer, path_vec)
-
-    topics_words = top_words_from_topics(lda, vocab, topn=10)
-    diversity, c_v, c_npmi = compute_all_metrics(topics_words, tokens_full)
-    
-    doc_topic = lda.transform(X_full)
-    balance, eff_k, min_topic_size, max_topic_size = topic_balance(doc_topic)
+        joblib.dump(lda, path_model)
+        joblib.dump(vectorizer, path_vec)
 
     return dict(
         k=int(k_topics),
@@ -309,20 +270,12 @@ def train_and_collect(k_topics: int) -> dict:
         batch_size=int(lda_batch_size),
         max_iter=int(lda_max_iter),
         learning_decay=float(lda_decay),
-        coherence_cv=float(c_v),
-        coherence_npmi=float(c_npmi),
-        diversity=float(diversity),
-        balance=float(balance),
-        effective_topics=int(eff_k),
-        min_topic=int(min_topic_size),
-        max_topic=int(max_topic_size),
         vocab_size=int(len(vocab)),
         n_docs=int(num_docs),
         model_path=path_model,
         vectorizer_path=path_vec,
         suffix=suffix
     )
-
 
 # ============================ OPTIMIZATION ==========================
 with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
@@ -332,11 +285,12 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
     k_min, k_max = max(10, min(k_candidates)), min(400, max(k_candidates))
     p(f"[OPTUNA] k range = [{k_min}, {k_max}]")
 
-    # subset per i trial
+    # SUBSET PER I TRIALS
     opt_frac = float(args.optuna_frac)
     rng = np.random.RandomState(SEED)
     n_tune = max(100, int(np.ceil(opt_frac * num_docs)))
     tune_idx = rng.choice(num_docs, size=n_tune, replace=False)
+    # X_tune is the bag of words corresponding to the selected documents
     X_tune = X_full[tune_idx]
     tokens_tune = [tokens_full[i] for i in tune_idx]
     p(f"[OPTUNA] tuning on {n_tune}/{num_docs} docs ({100*opt_frac:.1f}%)")
@@ -355,8 +309,9 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
             verbose=0,
             doc_topic_prior=None,
             topic_word_prior=None,
-            n_jobs=8
+            n_jobs=N_JOBS
         )
+        # FIT ONLY ON THE SUBSET
         lda.fit(X_tune)
         topics_words = top_words_from_topics(lda, vocab, topn=10)
         c_v = compute_cv_only(topics_words, tokens_tune)
@@ -365,7 +320,9 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
 
     sampler = TPESampler(seed=SEED, multivariate=True, n_startup_trials=5)
     study = optuna.create_study(direction="maximize", sampler=sampler)
-    n_trials = min(30, k_max - k_min + 1)
+
+    # calculating number of trials
+    n_trials = min(6, k_max - k_min + 1)
     p(f"[OPTUNA] running {n_trials} trials…")
     study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
 
@@ -400,40 +357,36 @@ with section("OPTUNA (TPE) su k — maximize c_v (subset)"):
         json.dump(best_k_info, f, ensure_ascii=False, indent=2)
     p(f"[OPTUNA] best-k metadata saved → {best_k_path}")
 
-    # ============== MODIFICA: salva sempre modello e risultati ==========
+    # train finale su 100% (sempre eseguito, ma senza metriche pesanti)
     if args.tune_only:
         p("[TUNE-ONLY] Salvo comunque modello e riga risultati con best_k.")
 
-    # train finale su 100% + metriche complete (sempre eseguito)
+    #FIT ON 100%
     training_start = time.perf_counter()
     row = train_and_collect(best_k)
     training_seconds = time.perf_counter() - training_start
     
     df_new = pd.DataFrame([row])
-    df_new['avg_score_robust'] = avg_score_robust(df_new)
 
     if os.path.exists(out_path_grid_search_results):
         df_exist = pd.read_csv(out_path_grid_search_results)
-        if set(result_columns).issubset(df_exist.columns):
-            df_merged = pd.concat([df_exist[result_columns], df_new[result_columns]], ignore_index=True)
-        else:
-            df_merged = pd.concat([df_exist, df_new[result_columns]], ignore_index=True)
+        df_merged = pd.concat([df_exist, df_new], ignore_index=True)
     else:
-        df_merged = df_new[result_columns]
+        df_merged = df_new
 
-    df_merged = enforce_result_dtypes(df_merged)
     df_merged.to_csv(out_path_grid_search_results, index=False)
     p(f"[OPTUNA] appended best-k row; total rows = {len(df_merged)}")
 
 # ======================== COMPLETION FLAG ===========================
 total_seconds = time.perf_counter() - START_TS
 
-# FORMATO MINIMALE RICHIESTO
-minimal_text = f"""Total Time: {total_seconds:.2f}s
+minimal_text = f"""Total Time optimized search for level depth {level_depth} : {total_seconds:.2f}s
 Tuning Time (10%): {tuning_seconds:.2f}s
 Training Time (100%): {training_seconds:.2f}s
 Best K: {best_k}
+level depth: {level_depth}
+optuna fraction of channels: {opt_frac}
 """
-with open(os.path.join(base_root, "grid_search_lda_completed_successfully.txt"), "w") as f:
+with open(os.path.join(base_root, f"optimized_grid_search_lda_level_{level_depth}_completed_successfully.txt"), "w") as f:
     f.write(minimal_text)
-p("#debug16 grid_search_lda_completed_successfully.txt written")
+p("#debug16 optimized_grid_search_lda_completed_successfully.txt written")

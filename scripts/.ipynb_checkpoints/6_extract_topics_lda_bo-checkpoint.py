@@ -22,7 +22,7 @@ def main():
     topn = args.topn
     
     # Percorsi
-    base_root = f"../results/levels/level_{level_depth}/grid_search_lda/"
+    base_root = f"../results/levels/level_{level_depth}/grid_search_lda_optimized/"
     best_k_path = os.path.join(base_root, f"optuna_best_k_level_{level_depth}.json")
     output_txt = os.path.join(".", f"6_topics_keywords_level_{level_depth}.txt")
     

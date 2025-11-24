@@ -91,8 +91,8 @@ def print_results(results, verbose=False):
     
     print("METRICS:")
     print("-" * 80)
-    print(f"TPR (Sensitivity/Recall):  {results['TPR']:.4f}  ({results['TPR']*100:.2f}%)")
-    print(f"Precision:                 {results['Precision']:.4f}  ({results['Precision']*100:.2f}%)")
+    print(f"TPR (Recall) TP/ (TP + FN):  {results['TPR']:.4f}  ({results['TPR']*100:.2f}%)")
+    print(f"Precision TP / (TP / FP):                 {results['Precision']:.4f}  ({results['Precision']*100:.2f}%)")
     print(f"F1-Score:                  {results['F1']:.4f}  ({results['F1']*100:.2f}%)")
     print(f"Accuracy:                  {results['Accuracy']:.4f}  ({results['Accuracy']*100:.2f}%)")
     print(f"Specificity (TNR):         {results['Specificity']:.4f}  ({results['Specificity']*100:.2f}%)")
@@ -133,28 +133,27 @@ def main():
     
     # Ground Truth (Human)
     human_politics_topics = [
-    8, 14, 46, 59, 60, 65
+        0, 3, 4, 6, 7, 8, 11, 12, 13, 14,
+        15, 17, 18, 20, 21, 22, 23, 24, 26, 27,
+        28, 30, 31, 32, 33, 34, 35, 38, 41, 43,
+        45, 46, 48, 49, 50, 51, 52, 53, 54, 55,
+        56, 57
     ]
-
+    
     human_non_politics_topics = [
-        0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 
-        11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 
-        32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 
-        42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 
-        53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 
-        66, 67, 68, 69, 70, 71, 72, 73, 74
+        1, 2, 5, 9, 10, 16, 19, 25, 29, 36,
+        37, 39, 40, 42, 44, 47
     ]
     
     # Prediction (Machine)
     machine_politics_topics = [
-        1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 13, 18, 19, 22, 23, 24, 25, 26, 27, 28,
-        30, 31, 32, 35, 36, 37, 38, 39, 40, 43, 44, 45, 48, 49, 50, 52, 54, 55,
-        56, 57, 62, 63, 64, 66, 68, 70, 71, 72, 73, 74
+        0, 3, 6, 7, 8, 11, 14, 15, 17, 18, 20, 21, 22, 23, 
+        24, 26, 27, 28, 30, 31, 32, 33, 34, 37, 38, 41, 43,
+        44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57
     ]
     machine_non_politics_topics = [
-        0, 8, 12, 14, 15, 16, 17, 20, 21, 29, 33, 34, 41, 42, 46, 47, 51,
-        53, 58, 59, 60, 61, 65, 67, 69
+        1, 2, 4, 5, 9, 10, 12, 13, 16, 19,
+        25, 29, 35, 36, 39, 40, 42, 47
     ]
     
     # Calcola metriche
