@@ -1,10 +1,14 @@
--consideriamo come politica tutti quei temi che possono essere discussi durante un dibattito elettorale tra cadidati e presidenti.
--ora per ogni topic dimmi se lo metteresti come topic di politica o meno, scelgi
-con cura e ricordati di non saltare topic e controlla di averli messi tutti
-#to change
-human_politics_topics=[]
-human_non_politics_topics=[]
-machine_politics_topics=[]
-machine_non_politics_topics=[]
+Let’s consider as political all those topics that could be discussed during an electoral debate between candidates and presidents.
 
-riempi solo machine
+Now, for each topic, tell me whether you would classify it as a political topic or not. Choose carefully and make sure you don’t skip any topics and that you’ve assigned all of them.
+
+Pay attention if you see names of people who are strongly related to the theme.
+
+Keep in mind that I used LDA and not BERTopic.
+
+human_politics_topics = []
+human_non_politics_topics = []
+machine_politics_topics = []
+machine_non_politics_topics = []
+
+# fill only the machine lists

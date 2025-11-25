@@ -1,77 +1,582 @@
-Level 0 - 75 topics - Top 20 keywords
+Level 0 - 58 topics - Top 20 keywords
 
-Topic 0: plan, later, project, jobs, drop, massive, companies, launch, strong, going, space, watching, break, recent, ship, zero, solana, files, file, seconds
-Topic 1: called, says, race, shows, mike, greatest, johnson, leading, haven, hell, green, speaker, conservative, communist, armed, poll, tips, scam, drive, stands
-Topic 2: times, tell, start, tucker, find, long, interview, democrat, needs, carlson, tucker carlson, time, democracy, telling, votes, notice, farmers, interesting, playing, protests
-Topic 3: white, house, white house, group, administration, biden, student, internet, biden harris, followed, follow, saving, alert, spybox, harris, follow alert, trumponsol, group spybox, speed, harris administration
-Topic 4: national, trade, sense, bought, wouldn, value, shut, common, guard, trade trending, chart trade, lies, alert, parliament, national guard, whale, chart, trending, weren, harris
-Topic 5: future, secure, chance, badges, liberty, opportunity, miss, trump, investment, cash, proud, liberty badges, invest, waiting, left, life, trump liberty, couple, urgent, financial
-Topic 6: states, united, united states, fight, forward, america, lied, stand, agenda, movement, senator, republic, soros, election, maga, iraq, michael, cancer, states america, interference
-Topic 7: vote, million, week, price, open, flag, american, love, cities, dollars, imagine, general, criminals, early, largest, crazy, attorney, spending, borders, invasion
-Topic 8: like, know, people, going, things, actually, probably, yeah, think, mean, maybe, shit, stuff, money, gonna, right, ones, thing, kind, looks
-Topic 9: president, trump, president trump, biden, going, debate, president biden, presidential, election, country, said, candidate, democratic, pennsylvania, administration, democrats, stage, office, hearing, biden administration
-Topic 10: trump, donald, donald trump, breaking, president, says, president donald, card, bitcoin, republican, event, news, trump says, york, iowa, reporter, rally, quick, blow, breaking trump
-Topic 11: health, care, migrants, finally, daily, legal, turned, records, personal, phil, abortion, passed, medical, travel, health care, women, effect, agency, remove, email
-Topic 12: bill, evidence, posted, clinton, hand, living, happy, risk, takes, george, gates, cars, fast, comments, buying, planet, hide, holding, documentary, bush
-Topic 13: world, death, peace, terrorist, game, attack, operations, created, possible, plans, earth, network, lose, long, celebrate, satanic, aware, realsganon, paris, fully
-Topic 14: life, family, friends, come, calling, jesus, heart, credit, lost, google, learn, share, image, shall, wings, lord, groups, purpose, love, late
-Topic 15: black, issues, single, click, subscribe, baby, child, vaccines, modern, update, swan, black swan, shooter, stronger, totally, facing, extremely, click black, ability, vladimir
-Topic 16: anti, understand, chinese, heard, minutes, play, easy, speak, words, starting, witness, live, english, blood, matters, religion, stream, count, games, accepted
-Topic 17: channel, join, hours, telegram, channels, exposed, list, modi, telegram channel, members, soon, news, majority, private, link, ready, assange, share, documents, reveal
-Topic 18: saying, position, book, admin, position trumpprice, guns, produce, written, keeps, conservatives, faces, setting, traditional, february, kelly, route, trucks, spokesperson, actually, years
-Topic 19: hard, stay, happen, clear, assassination, attempt, safe, congress, time, biggest, mainstream, assassination attempt, knew, supporting, making, push, dream, mainstream media, choose, wish
-Topic 20: video, watch, night, footage, videos, powerful, arrest, note, shocking, access, watch video, pulled, century, share join, seen, appears, driver, delay, likes, pull
-Topic 21: better, fall, join, cabal, different, tomorrow, mission, fall cabal, request, share channel, join fall, share, punisher, machine, channel, false, simple, jqin, request jqin, cabal join
-Topic 22: potus, americans, today, continue, families, months, years, american, protect, nearly, lives, million, millions, month, folks, british, working, pray, continues, jill
-Topic 23: country, illegal, community, citizens, aliens, people, illegals, policy, illegal aliens, charges, charge, criminal, deserve, agents, strike, rape, fuck, chief, millions, streets
-Topic 24: government, public, women, power, makes, based, water, debt, absolutely, elected, gold, money, corrupt, politics, allow, corruption, short, years, problems, agencies
-Topic 25: people, american, days, wrong, past, political, american people, leaders, elections, election, right, listen, australia, exactly, money, certain, hillary, state, politicians, truly
-Topic 26: huge, press, word, west, hands, assets, conference, dropped, muslim, club, ends, thousand, cool, press conference, cuts, shame, advice, ticket, narrative, replaced
-Topic 27: want, person, walz, covid, mind, wanted, respect, mexico, phone, businesses, culture, mayor, minnesota, going, queen, especially, drag, timothy, timothy walz, poverty
-Topic 28: workers, build, thousands, building, paid, cost, create, hundreds, weeks, bridge, promise, died, mark, search, manufacturing, fees, construction, dollars, model, wisconsin
-Topic 29: team, released, thanks, report, wait, immediately, committed, names, committee, straight, helped, electric, damn, wonderful, glad, presidents, identify, meant, confidence, entirely
-Topic 30: power, jewish, gets, little, palestine, company, near, area, large, march, university, road, girls, caught, main, growing, gives, despite, voice, palestinian
-Topic 31: ukraine, russia, countries, russian, foreign, putin, allowed, nato, weapons, europe, forces, defense, china, european, western, germany, ukrainian, parties, enemies, canada
-Topic 32: good, woman, record, voters, voting, asked, morning, operation, difference, explain, track, fine, said, carry, chris, ordered, proven, serve, refuses, kept
-Topic 33: support, look, young, jews, guys, instead, idea, people, worked, fair, attacked, line, amendment, worse, wrote, mentioned, look like, right, exact, impossible
-Topic 34: truth, city, save, people, information, matter, room, moment, thought, true, real, gone, fear, york, district, coming, hidden, time, kill, eyes
-Topic 35: think, party, right, happening, cause, leave, wasn, faith, light, issue, know, california, protesters, walk, agree, people, movie, successful, wing, causing
-Topic 36: campaign, comes, fighting, looking, course, beginning, army, senior, beat, rules, advisor, agreed, disgusting, sides, enter, pacific, represent, trump senior, prove, senior advisor
-Topic 37: news, fake, talking, hate, crisis, literally, drug, street, wall, council, fire, fake news, wife, drugs, racist, laws, pick, talks, reached, allowing
-Topic 38: work, gaza, hamas, business, killed, energy, dead, able, israeli, said, small, held, body, soldiers, hostages, whites, strip, palestinian, people, palestinians
-Topic 39: economy, wants, questions, running, destroyed, giving, fucking, voter, vaccine, james, protecting, afraid, funded, posts, opening, babies, answers, trial, sanctions, tech
-Topic 40: join, share, join share, deep, private, state, obama, biden, elon, deep state, musk, hunter, codezxvii, elon musk, codezxvii private, share codezxvii, letter, know, hunter biden, light
-Topic 41: secret, trump, service, coins, send, secret service, completely, silver, golden, supporters, director, showing, crooks, trump silver, thomas, rich, silver coins, coin, trump golden, confirmed
-Topic 42: turn, communities, local, likely, needed, website, currently, safety, ensure, visit, officials, sending, resources, prepared, train, help, areas, park, efforts, residents
-Topic 43: great, follow, storm, post, telegram, patriots, trust, join, twitter, return, join storm, welcome, awakening, data, super, follow telegram, coming, industry, great awakening, disaster
-Topic 44: doesn, home, including, started, responsible, recently, regime, civil, david, platform, ways, perfect, anymore, doubt, wikileakssecrets, join wikileakssecrets, wealth, speaks, banking, fauci
-Topic 45: military, billion, source, secretary, according, threat, sent, india, announced, services, october, infrastructure, development, reports, press, provide, investments, article, wednesday, burn
-Topic 46: sell, strength, selling, failure, product, avoid, acting, sheep, regret, studies, said, people, brought, council, believe, like, products, good, golden, community
-Topic 47: away, remember, head, special, vice, goes, evil, rights, violence, vice president, forget, killing, warning, leaving, smith, spoke, capital, served, jack, blue
-Topic 48: immigration, texas, north, south, immigrants, officers, illegal, carolina, couldn, rally, crowd, enforcement, governor, north carolina, fired, college, illegal immigrants, shouldn, desantis, rigged
-Topic 49: free, speech, china, john, close, wars, forced, brought, union, nuclear, creating, victims, free speech, censorship, revenue, bringing, closed, kennedy, industrial, empire
-Topic 50: high, prices, costs, inflation, level, term, lower, housing, problem, increase, major, means, higher, rate, policies, base, affordable, highest, rent, growth
-Topic 51: year, children, school, kids, half, child, came, years, girl, arrested, mother, charged, said, father, built, parents, tried, allegedly, southern, murder
-Topic 52: place, freedom, nation, justice, land, step, took, honor, enemy, reasons, details, unity, german, battle, generation, convicted, system, property, hitler, percent
-Topic 53: message, migration, token, pinned, epstein, wallet, pinned message, tokens, following, migrate, island, steps, store, claim, smart, contract, address, jeffrey, follow, mate
-Topic 54: food, security, known, zealand, shared, secrets, failed, levels, current, wonder, sharing, faster, terrorism, dropping, delivered, seriously, christchurch, language, diversity, carrying
-Topic 55: police, election, found, shot, said, taking, according, face, realsganon, officer, ground, reported, county, reportedly, multiple, hospital, incident, georgia, inside, staff
-Topic 56: kamala, harris, kamala harris, biden, american, office, jobs, years, inflation, born, claims, wins, liberal, americans, took, raise, afghanistan, harris biden, says, cost
-Topic 57: read, kennedy, federal, order, robert, court, decision, calls, robert kennedy, florida, executive, xpost, removed, ruling, read xpost, research, transgender, department, accused, monday
-Topic 58: history, thing, feel, force, hope, worst, leadership, weak, chat, discuss, woke, insane, reading, starts, trillion, driving, november, employees, alternative, stealing
-Topic 59: reason, real, action, banned, match, dust, bites, automated, bites dust, blocklist action, blocklist, automated blocklist, reason automated, action match, dust banned, wake, final, christian, provided, links
-Topic 60: ready, crypto, bank, number, account, received, products, funds, process, contact, trading, facebook, date, experience, necessary, receive, payment, message, organization, agent
-Topic 61: told, stop, case, judge, story, taken, second, gave, happened, involved, seeing, january, said, hear, town, cover, tells, death, alleged, trial
-Topic 62: israel, iran, bring, security, deal, attack, statement, pass, response, actions, national, israeli, signed, launched, humanitarian, iranian, national security, potus, voted, speaking
-Topic 63: america, left, middle, crooked, democrats, class, east, radical, total, biden, taxes, middle east, numbers, paying, country, average, rates, crooked biden, middle class, security
-Topic 64: system, control, military, global, financial, human, trafficking, release, intelligence, systems, chaos, humanity, alliance, potential, quantum, elite, event, expected, elites, collapse
-Topic 65: need, live, best, talk, claim, reward, tonight, happens, sick, amazing, picture, hello, rumble, claiming, previous, relationship, june, sleep, come, radio
-Topic 66: crime, question, prison, outside, answer, jail, deliver, violent, asking, missing, remarks, tune, role, years, gang, opinion, australian, direct, deliver remarks, houses
-Topic 67: events, market, chart, trending, trumpbuy, trending events, chart trending, market chart, trumpprice market, trumpprice, holder, holder trumpprice, works, plane, range, film, central, cameras, bomb, mode
-Topic 68: border, today, believe, important, jqin, thing, czar, share, jqin share, church, border czar, messenger, important thing, thing today, share important, today messenger, destiny, come, promises, deport
-Topic 69: help, official, soon, thank, minister, republicans, prime, friend, join, prime minister, coffee, time, society, announcement, join official, updates, sounds, reduce, convention, prepare
-Topic 70: world, change, entire, climate, seen, time, emergency, nations, international, know, dangerous, example, focus, technology, expect, journey, fellow, present, climate change, identity
-Topic 71: haley, market, trending, chart, nikki, market chart, nikki haley, chart trending, events, trending events, haley haley, holder, holder market, position, position market, write, pump, clown, lost, debate
-Topic 72: court, hold, supreme, supreme court, link, ballot, check, program, attention, available, know, enjoy, winning, request, leaked, time, primary, scared, truth, reminder
-Topic 73: didn, getting, point, working, coming, sure, know, fact, went, economic, knows, mass, pretty, terrorists, propaganda, proof, leader, going, protection, consider
-Topic 74: media, nesara, gesara, social, nesara gesara, join, join nesara, social media, dollar, content, steal, music, accounts, fraud, attacking, site, comment, gains, michigan, courts
+Topic 0: states, united, iran, gets, sent, israel, nuclear, missiles, personal, details, response, iranian, phil, attacks, missile, germany, email, totally, drones, taylor
+  Top 3 documents:
+    1) doc 885 (score=0.670): united states officials believe drones missiles launched israel united states predicts drones missiles intercepted united states appears ignoring iranwarnings assisting israel intercept passes ships n
+    2) doc 20093 (score=0.603): important component nuclear strategic deterrence equipped hypersonic missiles
+    3) doc 8303 (score=0.602): beautiful iranian song iran country fired missiles drones israel
+  3 random documents (topic-dominant if possible):
+    1) doc 18226 (score=0.017): apne khud defects dusro thopke depression bhagao raha
+    2) doc 1705 (score=0.308): iran backed houthi rebels publish video claiming missile drone launches yemen israel yesterday projectiles intercepted israeli defense systems fighter jets reported landed jordanian desert said risk i
+    3) doc 22677 (score=0.504): mocking french puny nuclear tests israel
+
+Topic 1: follow, group, storm, stay, patriots, stand, texas, ready, order, alert, card, friend, great, bless, important, pray, announcement, america, real, spybox
+  Top 3 documents:
+    1) doc 23167 (score=0.891): follow alert eleon wordl followed trumponsol fastest soon bullx group spybox
+    2) doc 23156 (score=0.891): follow alert tomturnbu followed trumponsol fastest soon bullx group spybox
+    3) doc 23106 (score=0.877): follow alert undlarakhar followed trumponsol rocky rock group spybox
+  3 random documents (topic-dominant if possible):
+    1) doc 4971 (score=0.181): file coming soon important file compiled months maybe beginning enormity mind numbing creating important reaching history humanity forge background alliance incinerating deepstate defections disappear
+    2) doc 21200 (score=0.134): house freedom caucus voted expel buck colo group ahead retirement standing group leaving hanging historically margin badlands media
+    3) doc 23161 (score=0.629): follow alert humammahdifollowed trumponsol join revolution group spybox
+
+Topic 2: channel, video, telegram, join, link, hours, soon, posted, videos, evidence, watch, channels, request, understand, share, easy, exposed, shocking, dollar, risk
+  Top 3 documents:
+    1) doc 14443 (score=0.945): clock ticking julian assange announced lock telegram channel private days news coming soon available joined channel lockdown join
+    2) doc 4141 (score=0.883): clock ticking barron trump announced lock telegram channel private days news coming soon available joined channel lockdown join
+    3) doc 17441 (score=0.801): situation denver alarming chance join channel join watch attack published watch explicit video watch explicit video
+  3 random documents (topic-dominant if possible):
+    1) doc 15745 (score=0.290): shocking video killed president john kennedy government killed help pentagon state department happened video shock world exposed watch video
+    2) doc 29418 (score=0.268): wondering premiums going pair sikhs caught dashcam trying pull suspected insurance scam sydneywest share video legal reasons link article follow
+    3) doc 16803 (score=0.517): active force storm initiated explanation necessary unstoppable evidence posted couldn risk worked hard deleted posted evidence channel join share channel evidence eyes spread watch false empire fall e
+
+Topic 3: plan, wants, debate, taxes, rate, migrant, raise, benefits, cuts, trillion, benefit, kind, tips, drive, electric, twice, percent, impossible, socialist, waste
+  Top 3 documents:
+    1) doc 13594 (score=0.670): worry taay know taxpayers unemployment benefit welfare
+    2) doc 7166 (score=0.509): sanptent quart fryer electric oven oilless multifunctional cooker
+    3) doc 19437 (score=0.504): migrant urinating public taught valuable lesson frenchman
+  3 random documents (topic-dominant if possible):
+    1) doc 12212 (score=0.274): tapper support medicare bill kamala correct tapper initially sponsored bernie sanders kamala
+    2) doc 24174 (score=0.336): finances greatly benefit listening tips provided start
+    3) doc 5584 (score=0.167): today mark major milestone million pensions protected devastating cuts thanks american rescue plan workers earn retirement benefits broken promises policies favor wealthy working families potus
+
+Topic 4: good, jobs, half, city, years, happy, union, ones, manufacturing, takes, people, longer, final, actual, destroy, streets, buying, links, chair, phase
+  Top 3 documents:
+    1) doc 16372 (score=0.870): people need know coming entering final phase invited means chosen links expire hours join good luck bless
+    2) doc 15739 (score=0.811): people need know coming entering final phase want destroy control voices longer silenced bellow invite links important channels leaks labratory secrets project force unleashed qawakening invited means
+    3) doc 15936 (score=0.805): people need know coming entering final phase want destroy control voices longer silenced bellow invite link important channel leaks invited means chosen link expire hours good luck bless
+  3 random documents (topic-dominant if possible):
+    1) doc 17029 (score=0.252): voice wilderness wildernesses good places notice voices tend reverberation lost crowded places
+    2) doc 13440 (score=0.175): know good reach pilling needs seen
+    3) doc 8156 (score=0.429): check profile gives hamster keys invite keys hamster kombat invite people keys
+
+Topic 5: best, long, price, term, wait, bought, value, address, sick, spent, active, grow, picture, april, decided, closed, whale, relationship, alert, sleep
+  Top 3 documents:
+    1) doc 432 (score=0.547): vivek ramaswamy whale spent sowy wallet value position price market dext screener trending
+    2) doc 433 (score=0.547): vivek ramaswamy whale spent buyer wallet value holder price market dext screener trending
+    3) doc 430 (score=0.547): vivek ramaswamy whale spent sowy wallet value holder price market dext screener trending
+  3 random documents (topic-dominant if possible):
+    1) doc 26738 (score=0.203): best easiest crypto fiat hates binance shit
+    2) doc 22681 (score=0.254): plywood kamikaze drones proving useful forth best producer capita
+    3) doc 13368 (score=0.145): list long brother savages meet aswell traitors happen
+
+Topic 6: right, left, members, race, workers, project, elections, check, leave, company, issue, vance, primary, exchange, space, wing, agree, values, georgia, german
+  Top 3 documents:
+    1) doc 16841 (score=0.754): clarity admins left right political chats
+    2) doc 14224 (score=0.668): happening issue causing larger waves political space guess like strange issue left right wing cause people spectrum agree support complete backfire politicians think party backs israel floor ripped un
+    3) doc 15687 (score=0.569): exclusive vance unveils maga golden plates news exclusive interview news sean hannity vance introduced bold initiative called maga golden plates project thank inviting sean vance began launched maga g
+  3 random documents (topic-dominant if possible):
+    1) doc 18555 (score=0.220): arent allowed reality check dont support israel
+    2) doc 2908 (score=0.202): crooked biden idea maga means stop maga movement pause
+    3) doc 10207 (score=0.302): fact check walz makes false claims vance trump project
+
+Topic 7: ukraine, russia, russian, night, putin, deal, lied, subscribe, changed, green, ukrainian, iraq, stands, dear, fracking, nationalist, vladimir, peace, banning, islamic
+  Top 3 documents:
+    1) doc 15054 (score=0.831): lying continue stop lied russia collusion lied ukraine lied ukraine biolabs lied plandemic lied lockdowns lied useless facemasks lied vaxxeens lied ivermectin lied hydroxychloroquine lied twitter cens
+    2) doc 16329 (score=0.772): lying continue stop lied russia collusion lied ukraine lied ukraine biolabs lied plandemic lied lockdowns lied useless facemasks lied vaxxeens lied ivermectin lied hydroxychloroquine lied twitter cens
+    3) doc 12554 (score=0.665): kamala bizarrely lied support fracking repeatedly endorsed fracking literally tape
+  3 random documents (topic-dominant if possible):
+    1) doc 23908 (score=0.234): russian chinese jets flying west coast russian warships cuba miles coast kamala going president trump
+    2) doc 25056 (score=0.192): having talk conversation putin started interview tucker carlson replied putin conversation president provided historical background origin ukraine
+    3) doc 3624 (score=0.186): building bases ukraine russian border starting wonder respond russia china built bases mexico border information gathering newly trained operatives couldn wind conflict ukraine russia fact matters wor
+
+Topic 8: better, free, women, save, feel, prison, india, years, open, seen, past, hand, kill, safe, eyes, stolen, self, poor, people, proof
+  Top 3 documents:
+    1) doc 17624 (score=0.860): going today rain shine rain gone unlikely rain
+    2) doc 896 (score=0.734): transgender pilot takes selfies films whilst flying airplane trans pilot seen hand planes controls holding camera feel safe plane
+    3) doc 25766 (score=0.648): lycra wearing cyclists thought past time
+  3 random documents (topic-dominant if possible):
+    1) doc 24963 (score=0.224): decide leave escape liberalism capitalism know come went thing
+    2) doc 4408 (score=0.121): question americans asking voting booth november family better biden question ronald reagan asked million americans famous debate jimmy carter reagan landslide question americans asking voting booth no
+    3) doc 25805 (score=0.288): governments tool distraction criminalizing folk free trade partners import
+
+Topic 9: trump, black, future, badges, liberty, coins, miss, secure, opportunity, chance, cash, golden, fast, silver, baby, life, click, supporters, bitcoin, investment
+  Top 3 documents:
+    1) doc 14729 (score=0.959): breaking trumpinsane offer trump liberty badges cash introducing bitcoin proudly miss golden ticket join historic opportunity check availability fast lucky trump says grab ticket financial freedom
+    2) doc 4433 (score=0.955): trump liberty badges cash bitcoin hours left miss unbelievable opportunity check qualify secure future today trump says grab ticket financial freedom fast spots vanishing
+    3) doc 4449 (score=0.937): breaking news tucker carlson trump liberty badges selling fast badges left chance urgent hours left chance invest future life changing trump liberty badges secure minimum liberty badges receive additi
+  3 random documents (topic-dominant if possible):
+    1) doc 28296 (score=0.251): train leaving station need coin wealth coming investors diamond hands financial freedom
+    2) doc 14724 (score=0.874): breaking news donald trump announced bitcoin want rich need trump liberty badge trump liberty badge bitcoin today secure financial future history miss lifetime opportunity exclusive offer trump libert
+    3) doc 26326 (score=0.286): seoulblockchain nerds geeking taiwanex mayor gets jail free card russiaplaying missile kyiv israelis want gaza timeout cryptofire hitting transactions cardanoupgrade robot ventures bagging bitcoin etf
+
+Topic 10: time, truth, come, coming, told, know, people, long, matter, tell, jesus, attention, hidden, things, life, change, operation, university, right, fear
+  Top 3 documents:
+    1) doc 15961 (score=0.837): coming right people scared scared time enjoy join share huge attention available places message chosen people know truth
+    2) doc 16330 (score=0.812): coming huge right people scared scared time enjoy join share huge attention available places message chosen people know truth request join
+    3) doc 15637 (score=0.803): coming right people scared scared time enjoy join share huge attention available places message chosen people know truth request join
+  3 random documents (topic-dominant if possible):
+    1) doc 12773 (score=0.152): optics people believe court trust plan wwgwga rest assured looking forward future proves past ball time stops enjoy join
+    2) doc 22337 (score=0.206): rich people children failed businessman lose money waste time wagie
+    3) doc 8122 (score=0.131): friday morning wings daily devotional olusola adejumo apostle paulrepentance read acts acts straightway preached christ synagogues heard amazed said destroyed called jerusalem came hither intent bring
+
+Topic 11: state, post, general, source, said, washington, democratic, statement, involved, thought, according, reports, online, recent, citizens, born, multiple, near, despite, refused
+  Top 3 documents:
+    1) doc 19086 (score=0.754): read nsdap early days hitlerrevolution travelling
+    2) doc 1210 (score=0.672): gangster politician mukhtar ansari dies cardiac arrest
+    3) doc 18164 (score=0.672): haha atleast chammach wise correct saying andhbhakt bhakt
+  3 random documents (topic-dominant if possible):
+    1) doc 553 (score=0.173): secret service denied repeated requests trumpsecurity detail additional resources specifically pers according report washington post usss leadership denied repeated requests years agents charged prote
+    2) doc 18030 (score=0.213): peru officially classifies transgender people mentally decree signed president dina boluarte transsexualism dual role transvestism gender identity disorder childhood gender identity disorders fetishis
+    3) doc 1989 (score=0.114): epstein like ring trap uncovered high brothels boston believed honeypot russian chinese israeli intelligence raided according experts trap blackmail politicians government officials bears similarities
+
+Topic 12: year, says, months, life, having, knows, tried, girl, father, mother, charged, voter, signed, letter, happens, parents, communist, going, told, broken
+  Top 3 documents:
+    1) doc 29529 (score=0.891): donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother
+    2) doc 29530 (score=0.836): donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother donkeys penis mother lqtl ltrwyst hnyh mdrfgr lqtl ltrwyst hnyh mdrfgr lqtl ltrwyst hnyh mdrfgr lqtl ltrwyst hnyh md
+    3) doc 1092 (score=0.686): utah parents allegedly year daughter teach safer strangers according affidavit girl called police told father ping year half parents admitted committing crimes tried justifying safer having strangers 
+  3 random documents (topic-dominant if possible):
+    1) doc 22639 (score=0.183): lets comes year like said shared knows engines shared mechanical friend pick logic
+    2) doc 27284 (score=0.240): approved pope francis vatican says transgender people baptized catholic serve godparents
+    3) doc 8066 (score=0.136): thursday morning wings daily devotional olusola adejumo repair broken altar kings elijah said unto people come near unto people came near unto repaired altar lord broken ready meet ready meet behold l
+
+Topic 13: police, children, found, shot, building, according, fire, took, local, outside, officer, officers, york, arrested, enforcement, incident, video, roof, daily, department
+  Top 3 documents:
+    1) doc 516 (score=0.881): local police officer found trump gunman retreated ladder suspect pointed rifle according associated press suspect discovered officer retreated allowing suspect fire trump rallygoers noticed climbing r
+    2) doc 23647 (score=0.840): breaking local police officer found trump gunman retreated ladder suspect pointed rifle according associated press suspect discovered officer retreated allowing suspect fire trump rallygoers noticed c
+    3) doc 8178 (score=0.761): freshly spammeds linkables restocked daily balance balance balance balance balance balance balance balance balance balance balance balance balance balance tapn extra help cashout doesn offer refund
+  3 random documents (topic-dominant if possible):
+    1) doc 25912 (score=0.201): props gopro doco time lucky police informed production happening forever couple years hitch case know cops seen remains unsolved
+    2) doc 1477 (score=0.285): remarkable footage catches migrant showing video beating nypd officers getting arrested according footage incident started migrant threw cigarette street verbal altercation police arrested migrant cau
+    3) doc 1148 (score=0.221): tennessee police officer went wild officers settled lawsuit maegan hall says xually groomed male police officers sued city vergne hall allegedly hooked multiple colleagues performed oral officers thre
+
+Topic 14: away, love, federal, comes, food, head, county, heart, guard, rules, spoke, article, board, arizona, changes, interesting, killing, bullet, cross, incredible
+  Top 3 documents:
+    1) doc 3246 (score=0.689): spoke spoke love room incredible think bullet comes away killing grace head slightly yeah think changes
+    2) doc 21036 (score=0.668): arizona federal judge rules voters prove citizenship status order vote elections
+    3) doc 29405 (score=0.509): grandmas omas nonas nanas love blackpilling
+  3 random documents (topic-dominant if possible):
+    1) doc 18861 (score=0.127): woke liberals stuck glam rock punk comes experience knowledge
+    2) doc 7263 (score=0.339): vegetable chopper food chopper container stainless steel blades
+    3) doc 25542 (score=0.269): dumb post russias thats year supposedly food water ammunitions supplies people plus procurement
+
+Topic 15: country, people, america, want, world, countries, class, middle, policy, different, taking, peace, foreign, nato, allowed, problem, biggest, built, wars, think
+  Top 3 documents:
+    1) doc 29363 (score=0.803): jewcinders face consequences policy words marked
+    2) doc 24776 (score=0.780): interested thing swarbrick pivots greens somebody foreign policy columnists sticks globalist open society internationalist
+    3) doc 22175 (score=0.738): actual working class people rarely support commies middle class fucks
+  3 random documents (topic-dominant if possible):
+    1) doc 14807 (score=0.268): good veto ceasefire need sure history consistent yeah like guys land called america place
+    2) doc 7942 (score=0.195): history communications project taken place return power people request jqin share channel better tomorrow messenger
+    3) doc 10848 (score=0.224): putin wipe nato face earth bring entire force join
+
+Topic 16: able, find, claim, credit, companies, step, reward, google, share, clean, image, sense, claiming, makes, lord, wings, clearly, given, focus, titled
+  Top 3 documents:
+    1) doc 16190 (score=0.753): need claim weekly tokens automatic airdrop distribution revenue share
+    2) doc 2314 (score=0.753): need claim weekly tokens airdrop revenue share
+    3) doc 14602 (score=0.687): tomorrowdevotional today titled proud happy wondering wicked society hurt feeling cheated colleague corners receiving acknowledgement praise answers read find justifiable reasons consoled assured dist
+  3 random documents (topic-dominant if possible):
+    1) doc 28857 (score=0.252): need chinese products like needed german products
+    2) doc 14851 (score=0.295): todaydevotional titled thrust little land happen thrust little land direct look happened peter thrusted little land commanded jesus blessing reward comes having obeyed jesus choice hears voice saying 
+    3) doc 5043 (score=0.433): revenue share program holding zuzu eligible claim share
+
+Topic 17: military, system, public, force, government, information, financial, economic, intelligence, morning, operations, chaos, plans, army, violence, gold, alliance, digital, quantum, star
+  Top 3 documents:
+    1) doc 17080 (score=0.672): starmars standing army affect turner diaries
+    2) doc 16305 (score=0.631): activated govtreduced elections held days alliance military control election doubt current timeline official site quantum financial system quantum financial system enter personal information find mone
+    3) doc 16313 (score=0.584): system activated information account visit official system website quantum financial system
+  3 random documents (topic-dominant if possible):
+    1) doc 18973 (score=0.202): lizz wants emulate america force live tent coffee snow tricked seen north korean information video
+    2) doc 4351 (score=0.422): wonderful talk rand paul morning issues share common restoring free speech ending forever wars chronic disease epidemics agency capture government waste
+    3) doc 8754 (score=0.314): nearly blackout military transponders north america statistical likelihood military airframes airborne canada mexico speculation advantages radar beacon blackouts dark indicator trust plan military ju
+
+Topic 18: high, china, business, anti, walz, chinese, calls, sign, program, respect, internet, protesters, modern, saving, tells, speed, piece, quick, timothy, korea
+  Top 3 documents:
+    1) doc 11535 (score=0.802): freakish walz respect neighbors respect personal choices walz snitch line neighbors tattle triple masking outdoors
+    2) doc 12104 (score=0.662): walz respect neighbors personal choices mind damn business walz literally snitch line minnesotans tattle neighbors violated tyrannical covid rules
+    3) doc 11990 (score=0.608): walz choices neighbors respect live golden role mind damn business snitch line neighbors tattle violating covid lockdowns
+  3 random documents (topic-dominant if possible):
+    1) doc 11809 (score=0.224): aapi caucus meeting speaker walz going chinese vice president
+    2) doc 25473 (score=0.203): party shill father high nats advisor
+    3) doc 24726 (score=0.252): sound like solid business business focuses core activity
+
+Topic 19: live, token, wallet, sure, launch, telling, british, holding, twitter, tonight, website, later, seconds, watching, network, solana, gang, rumble, thinks, minute
+  Top 3 documents:
+    1) doc 2301 (score=0.802): sure approve smart contracts selecting claim token connecting wallet page
+    2) doc 15254 (score=0.780): sure connect wallet hold token approve smart contracts smile
+    3) doc 17155 (score=0.754): tonight live rumble odysee cozy entropy
+  3 random documents (topic-dominant if possible):
+    1) doc 24120 (score=0.511): bullrun started think right time launch project solana collaboration launch team know waiting yesterday launch live seconds solana eyes
+    2) doc 13558 (score=0.224): police announce launch christchurch community beat team july
+    3) doc 9575 (score=0.168): dallas police investigating crimes linked venezuelan gang tren aragua dangerous gang kamala harris imported violent savages world president trump hell country
+
+Topic 20: power, protect, defend, iowa, career, upcoming, strengthen, handed, caucus, guarantee, studies, plants, america, want, british, work, bless, place, patriot, interests
+  Top 3 documents:
+    1) doc 25005 (score=0.670): depending interpretation guarantee doesnt protect exercise power handed british monarch
+    2) doc 25640 (score=0.502): power economic power cultural power political power
+    3) doc 14903 (score=0.431): thank supporters volunteering iowa caucus tonight iowa
+  3 random documents (topic-dominant if possible):
+    1) doc 29934 (score=0.170): election modi come power nail coffin democracy
+    2) doc 14583 (score=0.254): power carries conscientious persons prez pioneer thanks regards
+    3) doc 27468 (score=0.203): citing studies standard harrison medicine textbook written
+
+Topic 21: national, freedom, today, nation, true, potus, leader, communities, help, justice, shut, visit, honor, deserve, ensure, emergency, provide, train, facts, state
+  Top 3 documents:
+    1) doc 5218 (score=0.793): approved staterequests emergency assistance deployed thousands personnel support communities impacted helene team close contact state local officials sparing resource visit help potus
+    2) doc 5657 (score=0.752): nation immigrants nation dreamers cinco mayo represents nation freedom potus
+    3) doc 13637 (score=0.744): adolf hitler german leader national socialism battle nation honor sooner later loses freedom independence accordance higher rule justice cowardly dumb generation deserve freedom slave honor honor soon
+  3 random documents (topic-dominant if possible):
+    1) doc 18874 (score=0.145): distilled values higher increase rents attack labour replaceation nation
+    2) doc 11854 (score=0.203): democrat couldn bothered phone national anthem disgraceful
+    3) doc 18490 (score=0.224): president trumpplan reclaim colleges universities radical marxists ensure americastudents receive education deserve alina habba
+
+Topic 22: border, getting, fight, crisis, office, week, looking, ahead, fact, wall, southern, forward, crazy, king, czar, mayor, look, pick, stopped, female
+  Top 3 documents:
+    1) doc 25906 (score=0.754): jewing whore typical pronoun tion mare mayor wellington
+    2) doc 11235 (score=0.603): went frontlines border czar kamalaborder crisis
+    3) doc 71 (score=0.603): looking forward giveaway understand correctly today
+  3 random documents (topic-dominant if possible):
+    1) doc 5849 (score=0.231): today jill welcome majesty king abdullah hussein majesty queen rania abdullah jordan white house look forward discussing deepening strong relationship efforts produce enduring crisis gaza potus
+    2) doc 12527 (score=0.223): border crisis inflation crisis crime crisis global chaos spending minutes kamala asking scripted stupid gimmick appointing republican know total bullshit
+    3) doc 22736 (score=0.135): thomas rousseau patriot york weekend course typical fedjacketing ramps second gains headlines sound like message feds want getting guys
+
+Topic 23: death, realsganon, minister, water, possible, international, senator, prime, guilty, zealand, forces, alive, netanyahu, role, armed, shared, crash, children, dead, opening
+  Top 3 documents:
+    1) doc 25845 (score=0.685): wrong topic news current events shared opinion topic equally shared hate sharing awareness describing technique freely known language zealand
+    2) doc 4751 (score=0.634): according media sources iranpresident foreign minister pilots passengers died helicopter crash realsganon
+    3) doc 22635 (score=0.603): engine runs actual distilled water hydrogen
+  3 random documents (topic-dominant if possible):
+    1) doc 723 (score=0.231): convicted offender faked changed avoid registering offender caught alive living children arizona little surprised nice benjamin found dead gonna hold accountable sheriff mark lamb
+    2) doc 3926 (score=0.207): video breaks symbolism olympic opening ceremony literally copy pasted rituals bohemian grove blue dead body greek hindu robert kennedy
+    3) doc 13614 (score=0.203): presidential dick sucking contest yahoo sorry netanyahu
+
+Topic 24: media, kennedy, speech, robert, hate, immigrants, funding, mass, free, mainstream, laws, push, support, mark, efforts, pandemic, land, research, propaganda, remain
+  Top 3 documents:
+    1) doc 3707 (score=0.934): matters worse virus leaked product funded bioweapons research longer conspiracy theory theory fact robert kennedy
+    2) doc 3644 (score=0.924): matters worse virus leaked product funded bioweapons research longer conspiracy theory theory fact
+    3) doc 3659 (score=0.820): mark zuckerberg pressure censor leak theory couldn conspiracy theory robert kennedy
+  3 random documents (topic-dominant if possible):
+    1) doc 13459 (score=0.303): university canterbury candidate researching applications hate speech term hate speech word straight newspeak dictionary orwelldystopian novel minds liquified propaganda evils associated pushing concep
+    2) doc 20276 (score=0.183): javier milei gave speech announcing massive deregulation economy argentina liked opened speech condemning philosophy argentina situation today watch beginning speech english subtitles
+    3) doc 21259 (score=0.145): individuals claimed agents visited woman oklahoma examples department justice bidenpersonal stasi woman anti biden memes posted facebook course wasn going answer questions declaring exercise constitut
+
+Topic 25: said, didn, went, time, came, second, happened, lost, thank, earth, heard, event, hear, clear, defense, gave, lies, speak, minutes, person
+  Top 3 documents:
+    1) doc 11402 (score=0.787): retired usmc major confronts minimizing combat correspondent defending walzstolen valor hall defense information school heroes served capacity combat zone
+    2) doc 27913 (score=0.698): clear didn want drop said asked
+    3) doc 25390 (score=0.647): relevant porto discovered place dutch settled didn settle relevant factor booty tide
+  3 random documents (topic-dominant if possible):
+    1) doc 17485 (score=0.184): believe haven heard whaie calls week
+    2) doc 24224 (score=0.252): didn dementia seriously trump gets stage talks hours
+    3) doc 1553 (score=0.402): trump russia hell want paying nato members president country stood said attacked russia protect said didn delinquent said lethappened protect fact encourage hell want gotta
+
+Topic 26: government, message, migration, pinned, following, young, process, worked, mate, migrate, steps, tokens, modi, read, body, hands, complete, agencies, failed, late
+  Top 3 documents:
+    1) doc 15331 (score=0.948): receive exact tokens successfully completed migration process pinned message late migration yesss migrated today worked perfectly followed pinned message
+    2) doc 20613 (score=0.877): receive exact tokens successfully completed migration process
+    3) doc 15233 (score=0.847): exactly coins migration completed migration successfully following pinned message steps exactly migrated
+  3 random documents (topic-dominant if possible):
+    1) doc 20762 (score=0.302): failure migrate leads loss assets good migration compulsory holder deadline migration
+    2) doc 2322 (score=0.402): having problem claiming revenue share followed steps pinned message accordingly
+    3) doc 20745 (score=0.335): bound investors projects worked migration investor think right project develop utilities
+
+Topic 27: party, vote, democrats, democrat, crypto, democracy, voters, republicans, mind, republican, radical, release, votes, senate, left, elected, voted, hostages, insurance, traitors
+  Top 3 documents:
+    1) doc 3064 (score=0.891): republican colleagues silent radical left democrats counting silence submission
+    2) doc 3298 (score=0.751): rule democrat party halftime swap democrats voted biden effectively invalidate votes affront democracy obstruction official proceeding
+    3) doc 29793 (score=0.751): casted votes nota party party remaining party winner party
+  3 random documents (topic-dominant if possible):
+    1) doc 1398 (score=0.168): anti israel protesters violence storm christmas party organized democratic party detroit
+    2) doc 9331 (score=0.365): liberal think tankdeep ties biden admin left policies come haunt harris campaign
+    3) doc 20037 (score=0.288): need perigo party national party alongs woke bullshit
+
+Topic 28: total, california, member, vaccines, michael, schools, alleged, civil, accused, paris, allegedly, code, executive, park, property, james, virginia, appears, attacking, lawsuit
+  Top 3 documents:
+    1) doc 13687 (score=0.781): breaking trumprally shooter allegedly identified thomas matthew crooks year bethel park reports alleged member antifa
+    2) doc 27269 (score=0.587): Shuo Ming Liao youngkin Zheng Sheng Liao Chuan magaHua Qing Xian Chuan Gong Dang Fang Xiang youngkin falls short mission total control virginia state legislature
+    3) doc 22937 (score=0.546): want michael hill jeweller stores robbed like michael hill jeweller fuck michael hill jewry
+  3 random documents (topic-dominant if possible):
+    1) doc 27636 (score=0.183): television personality note yall need laugh today comedian named adam long impressions phil absolutely hilarious
+    2) doc 4810 (score=0.224): forget bayer executive said mrna shots gene therapy marketed vaccines gain public trust
+    3) doc 2493 (score=0.403): donald trumpcampaign reported milwaukee remarks total
+
+Topic 29: like, know, people, going, think, actually, look, things, talking, probably, want, yeah, mean, right, maybe, shit, gonna, stuff, thing, person
+  Top 3 documents:
+    1) doc 20084 (score=0.891): like know songs rhymes like cleaning carpets stuff like thing know like wacking broom
+    2) doc 28568 (score=0.877): know going vaccinated know going work know zealander problem
+    3) doc 28491 (score=0.860): person like know genuine copy artwork like going
+  3 random documents (topic-dominant if possible):
+    1) doc 3075 (score=0.426): americans vote want know want biden
+    2) doc 27758 (score=0.288): biden defined trump terrorist like getting wrong
+    3) doc 17015 (score=0.670): people like byeron know hemp starts work
+
+Topic 30: potus, americans, stop, congress, fighting, american, lives, people, dead, supporting, majority, safety, latest, brain, wasn, time, friends, work, farmers, afford
+  Top 3 documents:
+    1) doc 6169 (score=0.780): congratulations decorated paralympic track field athlete time american sports pioneer time potus
+    2) doc 7475 (score=0.685): weeks speaking israelleaders importance humanitarian pauses fighting civilians safety support freeing hostages increase flow food water medicine gaza latest conversations potus
+    3) doc 30022 (score=0.670): freaking brain assume things anti supporting congress brainless bimbo
+  3 random documents (topic-dominant if possible):
+    1) doc 5777 (score=0.150): americafounding service members laid lives idea unlike idea united states today generations heroes eternal peace live light liberty kept burning bless potus
+    2) doc 27549 (score=0.202): explanation cholesterol totally wrong brain lives totally different world cholesterol condition depending interactions cells
+    3) doc 23399 (score=0.163): republican governors issue joint statement support texas border dispute federal government
+
+Topic 31: israel, gaza, hamas, attack, israeli, jewish, terrorist, east, palestine, palestinian, killed, street, flag, meeting, people, city, area, hospital, held, ground
+  Top 3 documents:
+    1) doc 29490 (score=0.836): hands wild whit khamenei ghasem soleymani animals stained blood children
+    2) doc 344 (score=0.803): wears palestine flag dress attending pride parade
+    3) doc 29489 (score=0.803): hands wild beasts khamenei qasem soleimani stained blood children
+  3 random documents (topic-dominant if possible):
+    1) doc 14889 (score=0.303): biden troops sitting ducks allows enemies attack impunity bidenweakness getting troops killed fallen service members
+    2) doc 9938 (score=0.204): president trump past months kamala harris repeatedly demanded immediate ceasefire save hamas biden deployed military build million dollar pier resupply hamas
+    3) doc 1250 (score=0.402): kanye west chris brown seen dancing song lyrics antisemitic cked jewish pair seen dancing private party dubai
+
+Topic 32: kamala, harris, american, history, inflation, president, country, prices, years, vice, fucking, cost, largest, average, americans, zero, invasion, store, economy, dude
+  Top 3 documents:
+    1) doc 3361 (score=0.836): kamalaflation harris caused inflation casting decisive votes bideneconomic agenda
+    2) doc 9116 (score=0.803): kamala proposing largest hike american history
+    3) doc 27916 (score=0.717): blacklivesmatter tweet kamala harris tweet going viral
+  3 random documents (topic-dominant if possible):
+    1) doc 10040 (score=0.604): going greatest years history country seal border carry largest deportation operation history inflation energy bills half
+    2) doc 29548 (score=0.200): detailed itemized receipt grocery store detailed receipt local precinct vote receipt doesn match choices person charge demand correction code track vote secretary stateoffice vote worthy receipt
+    3) doc 11948 (score=0.219): major kamala cooking books time lying american people confronts million jobs vanishing revision
+
+Topic 33: white, house, thing, thanks, biden, president, important, wanted, jqin, today, district, messenger, seeing, contract, paying, gives, share, smart, alien, administration
+  Top 3 documents:
+    1) doc 8807 (score=0.860): jqin share important thing today messenger
+    2) doc 8819 (score=0.752): believe ghosts jqin share important thing today messenger
+    3) doc 7611 (score=0.670): time deck halls white house white house
+  3 random documents (topic-dominant if possible):
+    1) doc 6559 (score=0.368): today president biden joined leaders approximately different tribal nations administrationannual white house tribal nations summit reaffirmed commitment respecting tribal sovereignty strengthening nat
+    2) doc 18628 (score=0.170): sell council owns white elephant projects
+    3) doc 7300 (score=0.240): biden harris administration committed helping israel defend hamas terrorists ensuring continued humanitarian assistance civilians gaza read white house
+
+Topic 34: family, think, social, remember, created, issues, media, small, completely, politics, large, based, forget, proud, american, warning, calling, short, central, soros
+  Top 3 documents:
+    1) doc 19165 (score=0.754): media poison mixers blackwash talmud vision advertisements netroots nons content
+    2) doc 22085 (score=0.627): think wind circulation dust particles central asia humidity making pollution stick
+    3) doc 18978 (score=0.603): remember ordinary people canadian snow family
+  3 random documents (topic-dominant if possible):
+    1) doc 4280 (score=0.203): maine eating lobster reflecting sailing trips family whitewater paddling brothers
+    2) doc 3852 (score=0.131): working presidential campaign student opened horizons american political process shaped dedication public service changed life change excited invite join team kennedystudent ambassador internship prog
+    3) doc 26083 (score=0.171): forget children latest phone consumer slave
+
+Topic 35: need, making, people, hard, work, working, situation, increase, help, little, population, paid, corrupt, listen, evil, lead, word, town, time, gone
+  Top 3 documents:
+    1) doc 13385 (score=0.664): funny lived briefly small town eastern waikato friends live doors maori household told involved drug dealing children swarm foot path like urchins bigish dogs bloody intimidating decent maori apprecia
+    2) doc 19440 (score=0.627): great illustration tune establishment maori political figures people
+    3) doc 25725 (score=0.603): tomorrowguests marcus talk work zealandia heritage foundation
+  3 random documents (topic-dominant if possible):
+    1) doc 18082 (score=0.287): trump opened point lead biden polymarkets betting site doesn matter find voters register chase ballots work
+    2) doc 24768 (score=0.251): wage increase coming april luxon said increase wages year start government
+    3) doc 6975 (score=0.149): great news come agreement congressional leaders path forward remaining year funding bills house senate working finalize package quickly brought floor sign immediately potus
+
+Topic 36: join, share, private, know, secrets, codezxvii, turn, knew, notice, difference, stage, hello, important, club, deep, brother, removed, boys, state, cancer
+  Top 3 documents:
+    1) doc 7767 (score=0.752): bless letwin state share join share codezxvii private
+    2) doc 7868 (score=0.717): watch share join share codezxvii private
+    3) doc 29608 (score=0.717): collaboration right partner unlocking great results beneficial thought share
+  3 random documents (topic-dominant if possible):
+    1) doc 7834 (score=0.446): strength competence security weakness incompetence chaos join share codezxvii private
+    2) doc 22735 (score=0.290): criminalisation australians wanting australian patriot nationalist jailed saluting nation view videos join
+    3) doc 11010 (score=0.252): bless america month remember join share punisher
+
+Topic 37: news, fake, needs, interview, goes, finally, control, enemy, speaking, example, supply, choice, french, june, posts, guns, tech, realize, cool, understanding
+  Top 3 documents:
+    1) doc 3473 (score=0.702): democrats want control nuclear arsenal moron fake french accent speaking french scientists
+    2) doc 24676 (score=0.542): years america cool classic muscle cars harley davidsons route arcades cowboy events trucks barbecues guns degenerate
+    3) doc 2492 (score=0.503): digging fake weren room fake news
+  3 random documents (topic-dominant if possible):
+    1) doc 7920 (score=0.204): majority fake news america world movement worldwide jqin share
+    2) doc 16463 (score=0.403): gunna dump weeks yall know goes
+    3) doc 18339 (score=0.288): trumpdeclaration christian visibility equivalent throwing holy water demons fake news
+
+Topic 38: care, families, trust, continue, health, hold, costs, potus, lower, housing, west, strong, happen, line, pass, homes, culture, education, haven, build
+  Top 3 documents:
+    1) doc 6334 (score=0.795): reports shown progress lowering inflation know families struggling fighting lower housing health care costs corporations pass savings consumers potus
+    2) doc 19163 (score=0.670): dang guys written epic novel evening haven
+    3) doc 28249 (score=0.638): jeets come hold damn line forreal know going happen hold damn line
+  3 random documents (topic-dominant if possible):
+    1) doc 18240 (score=0.362): rahul gandhi smart cell spent billions ruin meme
+    2) doc 15245 (score=0.226): project future team working strong happy achievements results excellent project moon
+    3) doc 16187 (score=0.202): foundation token strong known structured clear roadmap bull coming time moon
+
+Topic 39: started, kids, level, yesterday, trade, cars, wife, lying, helping, machine, study, systems, knowledge, racial, ethereum, audience, powered, vehicles, multi, ireland
+  Top 3 documents:
+    1) doc 26711 (score=0.754): reef finance reef ethereum uniswap vusd xvol xfeeaebaaecddcdacf proapesgmdexspydtca banshuphoblxpvbttftw degenscalplyfe snipe trade
+    2) doc 7269 (score=0.672): wclearance bubble machine kids bubble maker bubbles toddlers
+    3) doc 26665 (score=0.672): reef finance reef ethereum uniswap vusd xvol xfeeaebaaecddcdacf proapesgmdexspydtca banshuphoblxpvbttftw reef bullx
+  3 random documents (topic-dominant if possible):
+    1) doc 4485 (score=0.170): obiden speaking mouth moving lying likelihood ordered
+    2) doc 7104 (score=0.170): reduced price teddy bear plush kids throw
+    3) doc 12671 (score=0.252): correction image industrial machine industrial machine join storm
+
+Topic 40: start, point, debt, question, bank, hope, elon, account, musk, answer, funds, massive, received, immediately, contact, showed, owned, money, points, payment
+  Top 3 documents:
+    1) doc 14449 (score=0.911): bank sent payment dear patriot received payment bank send message
+    2) doc 3673 (score=0.848): important payment ready received payment bank trump organization hope message finds delighted inform transaction processed ready receive funds account bank follow necessary steps schedule payout facil
+    3) doc 4412 (score=0.834): payment ready received payment bank america hope message finds delighted inform transaction processed ready receive funds account bank america follow necessary steps schedule payout facilitate payout 
+  3 random documents (topic-dominant if possible):
+    1) doc 27784 (score=0.337): fair point backed corner fair point
+    2) doc 14483 (score=0.279): people scammed check scammed think lost money worry covered contact agents claim funds today
+    3) doc 17105 (score=0.431): official governmenttwitter account suspended elon musk threatening citizens
+
+Topic 41: times, rights, jews, guys, decision, ballot, fair, play, dont, political, regime, attacked, remove, forever, celebrate, rape, spirit, music, amendment, overseas
+  Top 3 documents:
+    1) doc 1921 (score=0.638): israel play music festival site honor dead abducted attack nova music festival
+    2) doc 3625 (score=0.602): governmentresponse covid violated constitutional rights including fourth fifth seventh amendments militarized monetized response health priority
+    3) doc 20305 (score=0.596): maine state shenna bellows shill went defended decision remove trump ballot fear guys reviewed evidence january determined jinsurrection trump engaged credit clip admits political theatre suspended ef
+  3 random documents (topic-dominant if possible):
+    1) doc 29734 (score=0.336): kejriwal supports hindu refugees political gain
+    2) doc 26028 (score=0.186): precedent significant ramifications freedom expression speech lawful dissent chilling effect overly broad laws severe penalties deter individuals expressing unpopular opinions sharing information vagu
+    3) doc 15548 (score=0.158): biden regime approved largest taiwan recorded million death toll rises asheville desperate immediate biden regime focused sending dollars miles away americans dying dire need support government biden 
+
+Topic 42: watch, official, reason, action, real, banned, month, match, dust, rest, click, lose, bites, automated, access, blocklist, huge, coffee, currently, organization
+  Top 3 documents:
+    1) doc 17491 (score=0.902): bites dust banned raziq reason automated blocklist action match real
+    2) doc 24104 (score=0.902): bites dust banned brett reason automated blocklist action match real
+    3) doc 17515 (score=0.902): bites dust banned betty reason automated blocklist action match real
+  3 random documents (topic-dominant if possible):
+    1) doc 8825 (score=0.232): knows bodies buried pentagon right rest trumps boys running cant hide join
+    2) doc 24034 (score=0.891): bites dust banned yessir reason automated blocklist action match
+    3) doc 20169 (score=0.119): proof exclusive massive voter fraud uncovered michigan police find tens thousands fake registrations bags paid gift cards guns silencers burner phones democrat funded organization multiple temporary f
+
+Topic 43: team, change, game, weapons, deliver, experience, potus, groups, remarks, putting, liberal, highly, tune, exist, stronger, losing, france, bipartisan, helped, weekend
+  Top 3 documents:
+    1) doc 5728 (score=0.803): tune deliver morehouse collegespring commencement address potus
+    2) doc 6954 (score=0.717): tune deliver remarks friends ireland luncheon potus
+    3) doc 5598 (score=0.672): teamwork toughness congrats capping dominant season stanley potus
+  3 random documents (topic-dominant if possible):
+    1) doc 5993 (score=0.535): tune deliver remarks care economy potus
+    2) doc 5498 (score=0.402): join deliver remarks normandy france anniversary honoring bravely served sacrificed liberty prosperity potus
+    3) doc 5250 (score=0.306): tune deliver remarks continued strength economy strong september jobs report progress reopen east coast gulf ports potus
+
+Topic 44: market, trending, events, chart, haley, holder, position, nikki, trumpbuy, trumpprice, trade, winning, signal, idea, feels, harris, stock, alert, effective, biden
+  Top 3 documents:
+    1) doc 20404 (score=0.891): nikki haley haley pwng holder market chart trending events
+    2) doc 20451 (score=0.891): nikki haley haley hxwsw nfwc holder market chart trending events
+    3) doc 20450 (score=0.891): nikki haley haley hfbe ghptxn holder market chart trending events
+  3 random documents (topic-dominant if possible):
+    1) doc 21866 (score=0.877): trumpbuy trumpfkdbcsbtxn holder trumpprice market chart trending events
+    2) doc 20414 (score=0.891): nikki haley haley cdtsj psdc position market chart trending events
+    3) doc 13218 (score=0.877): trumpbuy trumpajxgyfvb holder trumpprice market chart trending events
+
+Topic 45: child, days, single, forced, florida, charges, turned, arrested, destroyed, hasn, david, conference, agents, reporter, years, abortion, travel, hour, nominee, chief
+  Top 3 documents:
+    1) doc 17811 (score=0.847): usbp agents douglas arrested mexican national child predator previous conviction felony aggravated criminal abuse victim years chief jason owens
+    2) doc 12307 (score=0.787): junior campaign spokesman quentin fulks kamala harris hasn interview press conference installed nominee days possibly month maybe
+    3) doc 12383 (score=0.785): harris campaign intern sams assures kamala interview month hasn single interview press conference days installed nominee
+  3 random documents (topic-dominant if possible):
+    1) doc 12266 (score=0.692): reporter kamala walk stairs days kamala installed presumptive nominee hasn single formal interview press conference
+    2) doc 6407 (score=0.224): tune hold press conference following nato summit potus
+    3) doc 21192 (score=0.224): melania departing morton barbara mandel recreation center palm beach florida casting votes florida presidential primary
+
+Topic 46: shows, major, crooked, entire, moment, climate, policies, migrants, couldn, data, weeks, playing, believe, literally, basically, beat, result, base, comments, boomers
+  Top 3 documents:
+    1) doc 25333 (score=0.672): wolf climate change digging teeth batter hatches
+    2) doc 18856 (score=0.653): data included people vaccinations years worst
+    3) doc 22246 (score=0.606): like literally people brought houses boomers
+  3 random documents (topic-dominant if possible):
+    1) doc 26419 (score=0.288): leaderboard average gain median leaderboard babes dexter base spud pegg base potato jinx bajie fomo doogle tokens tracked burp twitter
+    2) doc 16103 (score=0.171): unelected globalist technocrat bill gates issue food systems climate change farmers aren able grow crops tragedy talk innovation absolutely solve problem globalist doublespeak translation deliberate f
+    3) doc 719 (score=0.159): lgbtqi influencer shows surrogate baby newborn delivered surrogate husband couple posting numerous videos baby online including lying hospital given birth
+
+Topic 47: bill, epstein, clinton, list, island, trying, obama, children, george, jeffrey, hillary, gates, satanic, book, bush, sexual, andrew, names, punisher, hide
+  Top 3 documents:
+    1) doc 14942 (score=0.860): kevin sending spam message action warn
+    2) doc 14922 (score=0.836): steven snyder sending spam message action warn
+    3) doc 14877 (score=0.836): rebecca sending spam message action warn
+  3 random documents (topic-dominant if possible):
+    1) doc 11156 (score=0.317): alleged proof bill clinton richard branson virgin prince andrew having child tapes filmed epstein surfaced email victims latest document release join share
+    2) doc 16027 (score=0.351): epstein update released documents ghislaine maxwell piloted helicopter pick president clinton flew little james island clinton secret service girl board join
+    3) doc 17040 (score=0.339): tolerance pedo books libraries brittan book burnings flourish
+
+Topic 48: election, court, case, breaking, read, judge, fall, supreme, documents, trial, special, fraud, legal, records, cabal, july, revealed, evidence, asking, hearing
+  Top 3 documents:
+    1) doc 23237 (score=0.891): judge cannon blows hearing shuts special counsel jack smith read
+    2) doc 21747 (score=0.833): jack smith asks appeals court reverse dismissal trump documents case read
+    3) doc 20949 (score=0.815): attorney trump defendant lawfare rico case files motion contempt court fani willis
+  3 random documents (topic-dominant if possible):
+    1) doc 6337 (score=0.229): equal president todaysupreme court decision presidential immunity virtually limits president dangerous precedent potus
+    2) doc 4341 (score=0.274): patrick david asks candidacy tipping scales biden explain race tipping scales breaking
+    3) doc 20999 (score=0.245): breaking north carolina removed nearly names voter rolls including duplicates deceased individuals
+
+Topic 49: million, illegal, dollars, crime, money, room, billion, millions, aliens, illegals, cities, thousands, year, violent, called, murder, hundreds, higher, criminals, fund
+  Top 3 documents:
+    1) doc 12217 (score=0.717): kamala room disastrous deadly afghanistan withdrawal
+    2) doc 25362 (score=0.672): proceeds allow isreal billion tonnes coal
+    3) doc 25597 (score=0.670): gang patches illegal means crime illegal
+  3 random documents (topic-dominant if possible):
+    1) doc 21173 (score=0.402): invasion million illegal aliens projected cross border year time record
+    2) doc 2395 (score=0.274): bidenborder protects violent child traffickers actually helps predators deliver innocent children destination united states
+    3) doc 11838 (score=0.225): president trump kamala wants spend trillion dollars wasteful spending causing inflation says mistake going kamala harris answer liberal spending schemes bankrupt country clue time home buyer including
+
+Topic 50: trump, president, donald, going, campaign, john, says, america, election, breaking, drop, office, great, country, rally, pennsylvania, michigan, people, support, political
+  Top 3 documents:
+    1) doc 23878 (score=0.877): president trump closes massive charlotte rally pledge america great rsbn
+    2) doc 21483 (score=0.836): president donald trump adin ross lago today
+    3) doc 2860 (score=0.762): know polls president trump leading country conclusion american people acquitted president trump
+  3 random documents (topic-dominant if possible):
+    1) doc 3721 (score=0.207): reason harris support republicans establishment republicans closer views president trump exemplify called uniparty trump running establishment hate
+    2) doc 11961 (score=0.320): president trump didn need bill didn bill said close border want close border
+    3) doc 3526 (score=0.716): president donald trump absolutely right leadership historic peace
+
+Topic 51: security, woman, community, released, report, secretary, press, mike, johnson, footage, moving, speaker, senior, january, sitting, break, tomorrow, advisor, asked, wednesday
+  Top 3 documents:
+    1) doc 13458 (score=0.717): wonder sanjanas govt asked police barrington mall security footage
+    2) doc 23396 (score=0.623): special report house homeland security committee officially announces mark articles impeachment tuesday homeland security secretary alejandro mayorkas high crimes misdemeanors supported house speaker 
+    3) doc 15044 (score=0.579): house oversight committee released report stating biden committed impeachable offenses office
+  3 random documents (topic-dominant if possible):
+    1) doc 1348 (score=0.204): woman describes life sharia wish created women treat worse animals
+    2) doc 20198 (score=0.197): mike pompeo asked maria bartiromo morning plans trumpcabinet asked serve think difference said reminds famous statement smooth transition trump admin
+    3) doc 1938 (score=0.127): illegal african migrant assaults woman spain ripping clothes molesting true street onlookers watch
+
+Topic 52: biden, doesn, running, questions, hunter, obama, charge, caught, reality, rich, afraid, crimes, taxpayer, anymore, breaks, tough, imported, barack, girls, engaged
+  Top 3 documents:
+    1) doc 15484 (score=0.574): trump insinuating worse pictures hunter biden laptop
+    2) doc 19813 (score=0.509): imported swine wannabe freelance journo biron translate
+    3) doc 12011 (score=0.504): underestimate joeability things barack hussein obama
+  3 random documents (topic-dominant if possible):
+    1) doc 23247 (score=0.225): breaking hunter biden surviving biden arraigned thursday federal court pleading guilty related charges hunter biden appearance angeles district judge mark scarsi appointed president donald trump news
+    2) doc 3148 (score=0.254): unstable whoopi goldberg care biden pooped pants sentence
+    3) doc 8189 (score=0.173): going damn thing border biden care illegals need votes border biden cares ukraine biden want money stop flowing boris protect sons corrupt dealings ukraine biden ukrainians suffer biden sons corrupt d
+
+Topic 53: believe, energy, school, record, instead, north, candidate, voting, south, movement, student, council, industry, students, carolina, facebook, explain, track, film, camera
+  Top 3 documents:
+    1) doc 12859 (score=0.689): kamola jalolova introducing kamola jalolova standout candidate green sole female contender student council presidential race reflect kamolaindividuality strengths shape decision school leader cast vot
+    2) doc 27413 (score=0.672): palmetto bowl clemson south carolina williams brice stadium
+    3) doc 13568 (score=0.509): pajeet planted tracking device girlcar track
+  3 random documents (topic-dominant if possible):
+    1) doc 17290 (score=0.145): fucking pajeets worse chinks seen pajeets families school opposite
+    2) doc 10466 (score=0.101): needle moving direction blue voters witnessed corrupt circus known biden regime voting differently virtually zero trump voters jumping ship voting biden hope cheat join share thletterq
+    3) doc 12855 (score=0.390): alyorbek masodiqov introducing alyorbek masodiqov student class green running student council president moment assess commitment vision decide resonates expectations effective leadership cast votes wi
+
+Topic 54: bring, economy, covid, talk, administration, potus, years, number, drug, nearly, today, america, folks, sell, numbers, interest, vaccine, known, society, means
+  Top 3 documents:
+    1) doc 6760 (score=0.771): medicare reached agreements manufacturers drugs selected drug price negotiation means prices drugs folks stopping potus
+    2) doc 24884 (score=0.717): victims blood suckers suck life blood economy usury slavery
+    3) doc 5309 (score=0.638): right america strongest growth lowest inflation major economy world potus
+  3 random documents (topic-dominant if possible):
+    1) doc 2138 (score=0.173): woman brazil throws known priest stage people
+    2) doc 6071 (score=0.226): right administration investigating trade practices china steel aluminum investigation confirms anti competitive practices triple tariff rates steel aluminum imports china potus
+    3) doc 5034 (score=0.153): holy flip flops yesterday reported trillion wiped stock market early morning million liquidated cryptocurrency market warren buffett sold billion bank america stock debt nearly trillion carnage
+
+Topic 55: service, secret, home, tucker, assassination, story, attempt, carlson, phone, meet, problems, rally, crooks, director, protection, illegally, threat, welcome, believes, showing
+  Top 3 documents:
+    1) doc 23727 (score=0.651): pittsburgh channel news exclusively confirmed tuesday thomas crooks spotted police hanging american glass research complex hour assassination attempt president donald trump channel nicole ford obtaine
+    2) doc 18389 (score=0.603): republicans stood fisa surveillance killed renewal
+    3) doc 1498 (score=0.574): tucker carlson heads kremlin reportedly heading putinhq moscow
+  3 random documents (topic-dominant if possible):
+    1) doc 15537 (score=0.239): tucker carlson disclosed motive visiting russia witness country firsthand engage conversations regular citizens wait join
+    2) doc 23838 (score=0.222): single moment secret service considered pausing rally damning need communications released public immediately hide information stands looks extremely suspicious house representative eviscerates secret
+    3) doc 15864 (score=0.137): breaking tucker carlson leaves hotel head presidential administration interview going live streamed exclusively telegram rare opportunity americans hear directly influential world leaders global affai
+
+Topic 56: taken, powerful, course, send, deep, forces, truly, actions, responsible, witness, page, live, matters, stream, woke, count, investments, brave, normal, participate
+  Top 3 documents:
+    1) doc 11048 (score=0.703): know share bypassing mainstream narratives live stream dives deep heart matters truly count join forces witness news unfolds real unfiltered
+    2) doc 7665 (score=0.660): legions angels father bypassing mainstream narratives live stream dives deep heart matters truly count join forces witness news unfolds real unfiltered join storm
+    3) doc 12817 (score=0.659): know share bypassing mainstream narratives live stream dives deep heart matters truly count join forces witness news unfolds real unfiltered storm
+  3 random documents (topic-dominant if possible):
+    1) doc 18139 (score=0.251): haven felt energy level movement years think answer pretty damn clear
+    2) doc 7268 (score=0.254): wclearance patrol training pants count llback
+    3) doc 12686 (score=0.625): trump right bypassing mainstream narratives live stream dives deep heart matters truly count join forces witness news unfolds real unfiltered join storm
+
+Topic 57: world, human, nesara, gesara, global, immigration, happening, control, light, trafficking, humanity, faith, europe, history, wealth, starting, elite, dark, mass, technology
+  Top 3 documents:
+    1) doc 14518 (score=0.799): happening scenes masterful plan heads faith strong trump protected insulated watching movie meaning walk darkness light
+    2) doc 8771 (score=0.749): happening scenes masterful plan heads faith strong trump protected insulated watching movie meaning walk darkness light realsganon
+    3) doc 10620 (score=0.748): happening scenes masterful plan heads faith strong trump protected insulated watching movie meaning walk darkness light jqin
+  3 random documents (topic-dominant if possible):
+    1) doc 14494 (score=0.592): nesara gesara beds scenes connection nesara gesara beds shrouded mystery intrigue nesara gesara proposed economic reforms said closely linked release technology proponents urge public trust plan sugge
+    2) doc 26887 (score=0.336): worst knows human human beings empathy moron devil devils
+    3) doc 5143 (score=0.369): world shift happening russia recently completed land ocean trade route entirely outside western commerce finance markets respective enforcement mechanisms represents fundamental shift balance resource
+
