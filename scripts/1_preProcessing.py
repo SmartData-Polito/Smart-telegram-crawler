@@ -158,6 +158,57 @@ def preprocess_text(text, stopwords=stopwords):
     except Exception:
         return ("", "unk")
 
+#llm_preprocess_text function
+stopwords = list(STOP_WORDS)  # le manteniamo solo per compatibilità di PreProcessing, ma non le usiamo
+def llm_preprocess_text(text, stopwords=stopwords):
+    """
+    Preprocessing leggero pensato per LLM:
+    - Mantiene stopwords, punteggiatura, numeri, parole corte
+    - Pulisce solo il rumore evidente (urls, ripetizioni, spazi strani)
+    - Ritorna (testo_pulito, lingua_rilevata)
+    """
+    try:
+        # 1) Normalizzazione minima: lowercase
+        #    ESEMPIO:
+        #    "HELLO Iran!!!" -> "hello iran!!!"
+        text_low = text.lower()
+        
+        # 2) Inizializza il tuo oggetto di preprocessing
+        pp2 = PreProcessing(language='en', stopwords=stopwords)
+        
+        # 3) Language detection sul testo in minuscolo
+        lang = pp2.detect_language(text_low)
+        if lang in ('unk', None):
+            return ("", "unk")
+        
+        # 4) Rimozione URL (accettiamo di perderli, non facciamo ancora il placeholder)
+        #    ESEMPIO:
+        #    "check this https://t.me/whatever lol" -> "check this  lol"
+        text_clean = pp2.remove_urls(text_low)
+        
+        # 5) Riduzione delle ripetizioni patologiche
+        #    ESEMPIO (indicativo):
+        #    "loooool!!!!!!" -> "lool!!"
+        #    "sooooo good"   -> "soo good"
+        text_clean = pp2.remove_repetition(text_clean)
+        
+        # 6) Normalizza spazi doppi/tripli ecc.
+        #    ESEMPIO:
+        #    "hello   world  !!" -> "hello world !!"
+        text_clean = " ".join(text_clean.split())
+        
+        # 7) NON rimuoviamo:
+        #    - stopwords
+        #    - punteggiatura
+        #    - numeri
+        #    - parole corte
+        #    perché servono al LLM per capire bene il contesto
+        
+        return (text_clean, lang)
+    
+    except Exception:
+        return ("", "unk")
+
 #process_file function definition and return dataframw with channel_id, text, text_preprocessed, language
 def process_file(args):
     file, channel_id = args
@@ -166,9 +217,10 @@ def process_file(args):
         df = df.dropna(subset=['text'])
         df['text'] = df['text'].astype(str)
         pairs = df['text'].apply(preprocess_text)
+        pairs2 = df['llm_txt_preprocessed'] = df['text'].apply(llm_preprocess_text)
         df['text_preprocessed'] = [p[0] for p in pairs]
+        df['llm_text_preprocessed'] = [p[0] for p in pairs2]
         df['language'] = [p[1] for p in pairs]
-        df = df[df['text_preprocessed'] != ""]
         if df.empty:
             return None
         df['channel_id'] = channel_id
@@ -231,6 +283,7 @@ df_preprocessed_non_empty_channels.loc[:, 'text'] = (
 df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[
     df_preprocessed_non_empty_channels['text'] != ""
 ]
+
 df_preprocessed_non_empty_channels=df_preprocessed_non_empty_channels.dropna()
 df_preprocessed_non_empty_channels.loc[:, 'text_preprocessed'] = (
     df_preprocessed_non_empty_channels['text_preprocessed']
@@ -239,6 +292,16 @@ df_preprocessed_non_empty_channels.loc[:, 'text_preprocessed'] = (
 )
 df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[
     df_preprocessed_non_empty_channels['text_preprocessed'] != ""
+]
+
+df_preprocessed_non_empty_channels=df_preprocessed_non_empty_channels.dropna()
+df_preprocessed_non_empty_channels.loc[:, 'llm_text_preprocessed'] = (
+    df_preprocessed_non_empty_channels['llm_text_preprocessed']
+      .astype('string')
+      .str.strip()
+)
+df_preprocessed_non_empty_channels = df_preprocessed_non_empty_channels[
+    df_preprocessed_non_empty_channels['llm_text_preprocessed'] != ""
 ]
 
 # DATAFRAME OF ENGLISH ONLY MESSAGES

@@ -64,7 +64,7 @@ def main():
         f"../results/levels/level_{level_depth}/preProcessing/"
         f"preprocessed_non_empty_english_channels_without_duplicates_and_short_messages_level_{level_depth}.tsv.gz"
     )
-    
+
     # 1) Verifica esistenza metadata best_k
     if not os.path.exists(best_k_path):
         print(f"ERRORE: File best_k non trovato: {best_k_path}")
@@ -110,12 +110,13 @@ def main():
         return
 
     print(f"Caricamento documenti da: {docs_path}")
-    # carico solo la colonna text_preprocessed per risparmiare memoria
-    df_docs = pd.read_csv(docs_path, sep="\t", compression="gzip", usecols=["text_preprocessed"])
+    # carico solo la colonna llm_text_preprocessed per risparmiare memoria
+    df_docs = pd.read_csv(docs_path, sep="\t", compression="gzip", usecols=["llm_text_preprocessed"])
     print(f"df_docs.columns: {df_docs.columns}")
-    df_docs = df_docs[df_docs["text_preprocessed"].astype(str).str.strip() != ""]
-    df_docs["text_preprocessed"] = df_docs["text_preprocessed"].astype(str)
-    docs = df_docs["text_preprocessed"].tolist()
+    print(f"df_docs[llm_text_preprocessed].head(10): {df_docs['llm_text_preprocessed'].head(10)}")
+    df_docs = df_docs[df_docs["llm_text_preprocessed"].astype(str).str.strip() != ""]
+    df_docs["llm_text_preprocessed"] = df_docs["llm_text_preprocessed"].astype(str)
+    docs = df_docs["llm_text_preprocessed"].tolist()
     n_docs = len(docs)
     print(f"Numero documenti caricati: {n_docs}")
 
