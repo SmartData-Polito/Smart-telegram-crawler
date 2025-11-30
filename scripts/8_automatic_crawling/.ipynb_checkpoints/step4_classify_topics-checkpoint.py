@@ -16,7 +16,8 @@ import requests
 # ======================== CONFIGURATION ========================
 
 def load_openai_key():
-    secrets_path = os.path.join(os.path.dirname(__file__), "openai_secrets.json")
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # cartella superiore
+    secrets_path = os.path.join(BASE_DIR, "openai_secrets.json")
     try:
         with open(secrets_path, "r") as f:
             data = json.load(f)
