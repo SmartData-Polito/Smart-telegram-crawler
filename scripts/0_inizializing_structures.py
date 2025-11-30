@@ -50,6 +50,7 @@ print("Tables in DB:", tables)
 try:
     df_chats = pd.read_sql_query("SELECT * FROM chats", conn)
     df_chats =df_chats.drop_duplicates(subset='type_and_id')
+    df_chats = df_chats.dropna(subset=['type_and_id'])
     print("number of unique chats", len(df_chats))
     print("chats.db - Tabella 'chats'")
     print(df_chats.head())
@@ -64,6 +65,7 @@ conn.close()
 try:
     df_edges = pd.read_csv('../material/discovery_edges.csv.gz')
     df_edges = df_edges.drop_duplicates(subset='type_and_id')
+    df_edges = df_edges.dropna(subset=['type_and_id'])
     print("✅ discovery_edges.csv.gz, \n" \
     "Il timestamp da l'ultima volta che hanno visitato quel gruppo ma questo significa che non è davvero indicativo di una timeline \n")
     print(df_edges.head())
@@ -77,6 +79,7 @@ try:
     df_first_nodes = pd.read_csv('../material/first_nodes.csv.gz')
     print("number of non unique first nodes", len(df_first_nodes))
     df_first_nodes = df_first_nodes.drop_duplicates(subset='type_and_id')
+    df_first_nodes = df_first_nodes.dropna(subset=['type_and_id'])
     print("✅ first_nodes.csv.gz")
     print(df_first_nodes.head())
     print("number of unique first nodes", len(df_first_nodes))

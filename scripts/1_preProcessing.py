@@ -168,36 +168,31 @@ def llm_preprocess_text(text, stopwords=stopwords):
     - Ritorna (testo_pulito, lingua_rilevata)
     """
     try:
-        # 1) Normalizzazione minima: lowercase
-        #    ESEMPIO:
-        #    "HELLO Iran!!!" -> "hello iran!!!"
-        text_low = text.lower()
-        
-        # 2) Inizializza il tuo oggetto di preprocessing
+        # 1) Inizializza il tuo oggetto di preprocessing
         pp2 = PreProcessing(language='en', stopwords=stopwords)
         
-        # 3) Language detection sul testo in minuscolo
-        lang = pp2.detect_language(text_low)
+        # 2) Language detection sul testo in minuscolo
+        lang = pp2.detect_language(text)
         if lang in ('unk', None):
             return ("", "unk")
         
-        # 4) Rimozione URL (accettiamo di perderli, non facciamo ancora il placeholder)
+        # 3) Rimozione URL (accettiamo di perderli, non facciamo ancora il placeholder)
         #    ESEMPIO:
         #    "check this https://t.me/whatever lol" -> "check this  lol"
-        text_clean = pp2.remove_urls(text_low)
+        text_clean = pp2.remove_urls(text)
         
-        # 5) Riduzione delle ripetizioni patologiche
+        # 4) Riduzione delle ripetizioni patologiche
         #    ESEMPIO (indicativo):
         #    "loooool!!!!!!" -> "lool!!"
         #    "sooooo good"   -> "soo good"
         text_clean = pp2.remove_repetition(text_clean)
         
-        # 6) Normalizza spazi doppi/tripli ecc.
+        # 5) Normalizza spazi doppi/tripli ecc.
         #    ESEMPIO:
         #    "hello   world  !!" -> "hello world !!"
         text_clean = " ".join(text_clean.split())
         
-        # 7) NON rimuoviamo:
+        # 6) NON rimuoviamo:
         #    - stopwords
         #    - punteggiatura
         #    - numeri
