@@ -25,7 +25,7 @@ def main():
     output_dir = "../results/levels_automatic/level_0"
     os.makedirs(output_dir, exist_ok=True)
     
-    output_path = f"{output_dir}/nodes_level_0.csv"
+    output_path = f"{output_dir}/nodes_level_0.csv.gz"
     
     # Load or parse seeds
     if args.seeds_file:
@@ -56,7 +56,7 @@ def main():
     
     # Create nodes dataframe
     df_nodes = pd.DataFrame({'type_and_id': seeds})
-    df_nodes.to_csv(output_path, index=False)
+    df_nodes.to_csv(output_path, index=False, compression="gzip")
     
     print(f"Created level 0 with {len(seeds)} seed channels")
     print(f"Output: {output_path}")

@@ -3,11 +3,8 @@
 STEP 6: Prepare nodes for next level (children of political channels).
 Usage: python step6_prepare_next_level.py --level 0
 
-This script:
-1. Loads political channels from current level
-2. Finds their children in the hierarchy
-3. Avoids loops (children pointing back to parents)
-4. Creates nodes file for next level
+Reads from: channel_analysis/political_channels.json
+Output: level_{N+1}/nodes_level_{N+1}.csv.gz
 """
 
 import os
@@ -34,17 +31,17 @@ def main():
     log_time(f"Preparing nodes for level {next_level} from level {current_level}")
     
     # Paths
-    base_dir = f"../results/levels_automatic"
+    base_dir = f"../../results/levels_automatic"
     current_level_dir = f"{base_dir}/level_{current_level}"
     next_level_dir = f"{base_dir}/level_{next_level}"
     
-    # Input files
-    political_channels_path = f"{current_level_dir}/lda/political_channels.json"
-    hierarchy_path = "../../../../telegram_2024/usc-tg-24-us-election/hierarchy.csv"  # Adjust path as needed
+    # Input files - now reads from channel_analysis/
+    political_channels_path = f"{current_level_dir}/channel_analysis/political_channels.json"
+    hierarchy_path = "../../../../telegram_2024/usc-tg-24-us-election/hierarchy.csv"
     
     # Output files
     os.makedirs(next_level_dir, exist_ok=True)
-    next_nodes_path = f"{next_level_dir}/nodes_level_{next_level}.csv"
+    next_nodes_path = f"{next_level_dir}/nodes_level_{next_level}.csv.gz"
     excluded_nodes_path = f"{next_level_dir}/excluded_nodes.json"
     
     # Load political channels from current level
@@ -58,32 +55,29 @@ def main():
     political_channels = set(politics_data["political_channels"])
     log_time(f"Loaded {len(political_channels)} political channels from level {current_level}")
     
-    # Load hierarchy to find children
+    # Load hierarchy
     if not os.path.exists(hierarchy_path):
         log_time(f"ERROR: Hierarchy file not found: {hierarchy_path}")
         log_time("Creating empty next level nodes file")
-        pd.DataFrame(columns=['type_and_id']).to_csv(next_nodes_path, index=False)
+        pd.DataFrame(columns=['type_and_id']).to_csv(next_nodes_path, index=False, compression="gzip")
         return
     
     log_time("Loading hierarchy...")
     df_hierarchy = pd.read_csv(hierarchy_path)
     log_time(f"Loaded hierarchy with {len(df_hierarchy)} edges")
     
-    # Collect all nodes processed in previous levels (to avoid loops)
+    # Collect all nodes processed in previous levels
     all_processed_nodes = set()
     for lvl in range(current_level + 1):
-        lvl_nodes_path = f"{base_dir}/level_{lvl}/nodes_level_{lvl}.csv"
+        lvl_nodes_path = f"{base_dir}/level_{lvl}/nodes_level_{lvl}.csv.gz"
         if os.path.exists(lvl_nodes_path):
-            df_lvl = pd.read_csv(lvl_nodes_path)
+            df_lvl = pd.read_csv(lvl_nodes_path, compression="gzip")
             if 'type_and_id' in df_lvl.columns:
                 all_processed_nodes.update(df_lvl['type_and_id'].tolist())
     
     log_time(f"Total nodes processed in levels 0-{current_level}: {len(all_processed_nodes)}")
     
-    # Find children of political channels
-    # Assuming hierarchy has columns: parent_id, child_id (adjust as needed)
-    # Common column names: source/target, from/to, parent/child
-    
+    # Find parent/child columns
     parent_col = None
     child_col = None
     
@@ -109,19 +103,18 @@ def main():
     
     log_time(f"Found {len(children)} children of political channels")
     
-    # Filter out already processed nodes (avoid loops)
+    # Filter out already processed
     new_children = children - all_processed_nodes
     excluded_loops = children & all_processed_nodes
     
     log_time(f"New children (not in previous levels): {len(new_children)}")
     log_time(f"Excluded (would create loops): {len(excluded_loops)}")
     
-    # Create next level nodes dataframe
+    # Save
     df_next = pd.DataFrame({'type_and_id': sorted(new_children)})
-    df_next.to_csv(next_nodes_path, index=False)
+    df_next.to_csv(next_nodes_path, index=False, compression="gzip")
     log_time(f"Saved {len(df_next)} nodes for level {next_level} to {next_nodes_path}")
     
-    # Save excluded nodes info
     excluded_info = {
         "level": next_level,
         "parent_level": current_level,
@@ -134,11 +127,9 @@ def main():
     with open(excluded_nodes_path, "w") as f:
         json.dump(excluded_info, f, indent=2)
     
-    # Final timing
     total_time = time.perf_counter() - START_TIME
     log_time(f"\nCOMPLETED in {total_time:.2f}s")
     
-    # Check if we should continue
     if len(new_children) == 0:
         log_time("\n*** No new nodes for next level - pipeline complete! ***")
     else:
