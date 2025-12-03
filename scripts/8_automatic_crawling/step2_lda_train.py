@@ -5,6 +5,13 @@ STEP 2: Train LDA model with Optuna optimization.
 Usage: python step2_lda_train.py --level 0
 
 Output: lda/
+
+OTTIMIZZAZIONI:
+- Parallelizzazione doc2bow con multiprocessing
+- Coherence c_npmi invece di c_v (10x più veloce)
+- Meno passes durante Optuna (2 invece di 4)
+- Subset più piccolo per coherence
+- LdaModel per trial (meno overhead), LdaMulticore per finale
 """
 
 import os
@@ -18,9 +25,10 @@ import joblib
 import optuna
 from optuna.samplers import TPESampler
 from gensim.corpora import Dictionary
-from gensim.models import LdaMulticore
-from multiprocessing import cpu_count
-from octis.evaluation_metrics.coherence_metrics import Coherence
+from gensim.models import LdaMulticore, LdaModel
+from gensim.models.coherencemodel import CoherenceModel
+from multiprocessing import Pool, cpu_count
+from functools import partial
 
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -35,6 +43,7 @@ except NotImplementedError:
 
 OPTUNA_FRACTION = 0.10
 OPTUNA_TRIALS = 6
+COHERENCE_SUBSET = 5000  # Max documenti per calcolo coherence
 
 random.seed(SEED)
 np.random.seed(SEED)
@@ -56,20 +65,55 @@ def compute_num_topics_range(num_docs: int) -> tuple:
 def compute_lda_params(num_docs: int) -> dict:
     return {
         'passes': 4,
+        'passes_optuna': 2,  # Meno passes durante tuning
         'chunksize': max(2000, min(2500, num_docs // 50)),
         'decay': 0.5
     }
 
+# ======================== PARALLEL CORPUS BUILDING ========================
+def doc2bow_worker(doc_tokens, dictionary):
+    """Worker per parallelizzare doc2bow."""
+    return dictionary.doc2bow(doc_tokens)
+
+def build_corpus_parallel(tokenized_docs, dictionary, n_jobs=None):
+    """Costruisce il corpus in parallelo."""
+    if n_jobs is None:
+        n_jobs = N_JOBS
+    
+    # Per dataset piccoli, non vale la pena parallelizzare
+    if len(tokenized_docs) < 10000:
+        return [dictionary.doc2bow(doc) for doc in tokenized_docs]
+    
+    # Usa joblib per parallelizzazione efficiente
+    corpus = joblib.Parallel(n_jobs=n_jobs, backend='loky', batch_size=1000)(
+        joblib.delayed(dictionary.doc2bow)(doc) for doc in tokenized_docs
+    )
+    return corpus
+
 # ======================== COHERENCE METRIC ========================
-def compute_coherence_cv(lda_model, dictionary, tokenized_docs, topn: int = 10) -> float:
+def compute_coherence_fast(lda_model, dictionary, tokenized_docs, topn: int = 10) -> float:
+    """
+    Calcola coherence usando c_npmi (molto più veloce di c_v).
+    Usa un subset di documenti per velocizzare ulteriormente.
+    """
     try:
-        #from octis.evaluation_metrics.coherence_metrics import Coherence
-        topic_words = []
-        for topic_idx in range(lda_model.num_topics):
-            top_words = [word for word, _ in lda_model.show_topic(topic_idx, topn=topn)]
-            topic_words.append(top_words)
-        coherence = Coherence(topk=topn, texts=tokenized_docs, measure='c_v')
-        return float(coherence.score({"topics": topic_words}))
+        # Usa subset per coherence se troppi documenti
+        if len(tokenized_docs) > COHERENCE_SUBSET:
+            rng = np.random.RandomState(SEED)
+            indices = rng.choice(len(tokenized_docs), size=COHERENCE_SUBSET, replace=False)
+            texts_subset = [tokenized_docs[i] for i in indices]
+        else:
+            texts_subset = tokenized_docs
+        
+        # c_npmi è ~10x più veloce di c_v
+        cm = CoherenceModel(
+            model=lda_model,
+            texts=texts_subset,
+            dictionary=dictionary,
+            coherence='c_npmi',
+            topn=topn
+        )
+        return float(cm.get_coherence())
     except Exception as e:
         log_time(f"Warning: Coherence computation failed: {e}")
         return 0.0
@@ -114,17 +158,11 @@ def main():
     log_time(f"Loaded {num_docs} documents")
 
     k_min, k_max = compute_num_topics_range(num_docs)
-    """
-    lda_params = {
-        'passes': x,
-        'chunksize': x,
-        'decay': x
-    }   
-    """
     lda_params = compute_lda_params(num_docs)
 
     log_time(f"K range: [{k_min}, {k_max}]")
     log_time(f"LDA: passes={lda_params['passes']}, chunksize={lda_params['chunksize']}")
+    log_time(f"Using {N_JOBS} workers")
 
     dictionary_start = time.perf_counter()
     if args.resume and os.path.exists(dictionary_path) and os.path.exists(corpus_path):
@@ -134,9 +172,14 @@ def main():
     else:
         log_time("Building dictionary...")
         dictionary = Dictionary(tokenized_docs)
-        dictionary.filter_extremes(no_below=max(2, int(round(0.001 * num_docs))), 
-                                   no_above=0.95 if num_docs < 5000 else 0.90)
-        corpus_full = [dictionary.doc2bow(doc) for doc in tokenized_docs]
+        dictionary.filter_extremes(
+            no_below=max(2, int(round(0.001 * num_docs))), 
+            no_above=0.95 if num_docs < 5000 else 0.90
+        )
+        
+        log_time("Building corpus (parallel)...")
+        corpus_full = build_corpus_parallel(tokenized_docs, dictionary)
+        
         joblib.dump(dictionary, dictionary_path)
         joblib.dump(corpus_full, corpus_path)
 
@@ -156,17 +199,20 @@ def main():
 
     def objective(trial):
         k = trial.suggest_int("k", k_min, k_max, step=1)
-        lda = LdaMulticore(
+        
+        # Usa LdaModel (single-thread) per trial - meno overhead
+        lda = LdaModel(
             corpus=corpus_tune,
             id2word=dictionary,
             num_topics=k,
-            passes=lda_params['passes'],
+            passes=lda_params['passes_optuna'],  # Meno passes
             chunksize=lda_params['chunksize'],
             decay=lda_params['decay'],
             random_state=SEED,
-            workers=N_JOBS
+            alpha='auto',
+            eta='auto'
         )
-        cv_score = compute_coherence_cv(lda, dictionary, tokens_tune)
+        cv_score = compute_coherence_fast(lda, dictionary, tokens_tune)
         trial.set_user_attr("cv_score", cv_score)
         return cv_score
 
@@ -191,6 +237,7 @@ def main():
     train_start = time.perf_counter()
     log_time(f"Training final model with k={best_k} on full data...")
 
+    # Usa LdaMulticore per il modello finale (più veloce su grandi dataset)
     final_lda = LdaMulticore(
         corpus=corpus_full,
         id2word=dictionary,
@@ -199,7 +246,9 @@ def main():
         chunksize=lda_params['chunksize'],
         decay=lda_params['decay'],
         random_state=SEED,
-        workers=N_JOBS
+        workers=N_JOBS,
+        alpha='symmetric',
+        eta='auto'
     )
 
     train_time = time.perf_counter() - train_start
@@ -218,7 +267,8 @@ def main():
         "vocab_size": vocab_size,
         "optuna_fraction": OPTUNA_FRACTION,
         "optuna_time_seconds": optuna_time,
-        "training_time_seconds": train_time
+        "training_time_seconds": train_time,
+        "coherence_metric": "c_npmi"
     }
     with open(best_k_path, "w") as f:
         json.dump(metadata, f, indent=2)

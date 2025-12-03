@@ -60,9 +60,9 @@ def log_time(message: str) -> None:
 
 # ======================== CLASSIFICATION PROMPT ========================
 CLASSIFICATION_PROMPT = """You are classifying topics from a topic model of Telegram messages.
-Determine if this topic is related to POLITICS.
+Determine if this topic is related to POLITICS. Consider that the keywords are obtained with lda gensim.
 
-POLITICS includes: 
+POLITICS includes strictly: 
 Let's consider as political all those topics that could be discussed during an electoral debate between candidates and presidents.
 
 
@@ -259,7 +259,7 @@ def classify_topic(topic_data: dict, model: str) -> bool:
     log_time(f"    [DEBUG] Raw response: '{response}'")
     
     response_clean = response.strip().lower()
-    if response_clean in ["yes", "sì", "si", "y"]:
+    if response_clean in ["yes", "sì", "si", "y", "ok", "esatto", "exacly", ""]:
         return True
     elif response_clean in ["no", "n"]:
         return False
