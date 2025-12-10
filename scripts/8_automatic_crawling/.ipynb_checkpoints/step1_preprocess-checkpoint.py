@@ -2,143 +2,276 @@
 """
 STEP 1: Preprocess Telegram messages for topic detection.
 Usage: python step1_preprocess.py --level 0
-
-Output: preprocessing/
-
-OTTIMIZZAZIONI:
-- Language detection fatta una sola volta per messaggio
-- Pattern regex pre-compilati
-- Preprocessing unificato
+       python step1_preprocess.py --level 0 --start-date 2024-01-01 --end-date 2024-06-30
 """
 
 import os
 import re
 import time
 import argparse
+import json
 import gc
 from multiprocessing import Pool, cpu_count
+from datetime import datetime
+import warnings
+warnings.filterwarnings('ignore')
 
 import pandas as pd
 from glob import glob
 from tqdm import tqdm
 from unidecode import unidecode
-import langdetect
-from spacy.lang.en.stop_words import STOP_WORDS
 
-# ======================== TIMING UTILITIES ========================
+# ======================== TIMING ========================
 START_TIME = time.perf_counter()
+STEP_TIMES = {}
 
-def log_time(message: str) -> None:
-    elapsed = time.perf_counter() - START_TIME
-    print(f"[{elapsed:8.2f}s] {message}")
+def log_time(msg: str) -> None:
+    print(f"[{time.perf_counter() - START_TIME:8.2f}s] {msg}")
 
-# ======================== CONFIGURATION ========================
-MIN_TOKENS_FOR_VALID_MESSAGE = 5
-STOPWORDS = set(STOP_WORDS)
+def start_timer(name: str) -> float:
+    return time.perf_counter()
+
+def end_timer(name: str, start: float) -> float:
+    elapsed = time.perf_counter() - start
+    STEP_TIMES[name] = elapsed
+    return elapsed
+
+# ======================== CONFIG ========================
+MIN_TOKENS = 5
+SAVE_EVERY = 500
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
 
-# ======================== PRE-COMPILED PATTERNS ========================
-PATTERN_URL = re.compile(r'http\S+')
-PATTERN_MENTIONS = re.compile(r'(@|#)\S+')
-PATTERN_PUNCTUATION = re.compile(r'[!"#$%&\'()*+,\-./:;<=>?@\\^_{|}~]')
-PATTERN_NEWLINES = re.compile(r'[\r\n]+')
-PATTERN_SPACES = re.compile(r' {2,}')
-PATTERN_NUMBERS = re.compile(r'[0-9]+')
-PATTERN_SHORT_WORDS = re.compile(r'\b\w{1,3}\b')
-PATTERN_STOPWORDS = re.compile(rf'\b({"|".join(STOPWORDS)})\b')
+# Global date filters (set in main)
+START_DATE = None
+END_DATE = None
 
-# ======================== LANGUAGE DETECTION ========================
-def detect_language(text: str) -> str:
-    """Detect language con langdetect."""
-    if not text or len(text.strip()) < 20:
+# ======================== FASTTEXT LANGUAGE DETECTION ========================
+FASTTEXT_MODEL = None
+
+def init_fasttext():
+    global FASTTEXT_MODEL
+    try:
+        import fasttext
+        fasttext.FastText.eprint = lambda x: None
+        
+        model_paths = [
+            '/tmp/lid.176.ftz',
+            os.path.expanduser('~/lid.176.ftz'),
+            'lid.176.ftz'
+        ]
+        
+        model_path = None
+        for p in model_paths:
+            if os.path.exists(p):
+                model_path = p
+                break
+        
+        if not model_path:
+            import urllib.request
+            model_path = '/tmp/lid.176.ftz'
+            log_time("Downloading fasttext model...")
+            urllib.request.urlretrieve(
+                'https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz',
+                model_path
+            )
+        
+        FASTTEXT_MODEL = fasttext.load_model(model_path)
+        log_time("FastText model loaded")
+        return True
+    except Exception as e:
+        log_time(f"FastText not available: {e}, using fallback")
+        return False
+
+def detect_lang_fast(text: str) -> str:
+    if not text or len(text) < 15:
         return 'unk'
     try:
-        # Limita testo per velocità
-        text_sample = text[:300]
-        detections = langdetect.detect_langs(text_sample)
-        best = max(detections, key=lambda x: x.prob)
-        return best.lang if best.prob >= 0.7 else 'unk'
+        pred = FASTTEXT_MODEL.predict(text[:150].replace('\n', ' '), k=1)
+        lang = pred[0][0].replace('__label__', '')
+        conf = pred[1][0]
+        return lang if conf > 0.5 else 'unk'
     except:
         return 'unk'
 
-# ======================== PREPROCESSING FUNCTIONS ========================
-def preprocess_text(text: str) -> dict:
-    """
-    Preprocessa un testo una sola volta, restituisce sia versione LDA che LLM.
-    """
-    if not isinstance(text, str) or not text.strip():
-        return {"text_lda": "", "text_llm": "", "language": "unk"}
+def detect_lang_fallback(text: str) -> str:
+    if not text or len(text) < 20:
+        return 'unk'
+    try:
+        import langdetect
+        return langdetect.detect(text[:150])
+    except:
+        return 'unk'
+
+# ======================== REGEX ========================
+PATTERN_CLEAN_ALL = re.compile(
+    r'https?://\S+|www\.\S+|'
+    r'[@#]\S+|'
+    r'[!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~]|'
+    r'\d+|'
+    r'[\r\n]+',
+    re.IGNORECASE
+)
+
+PATTERN_SHORT = re.compile(r'\b\w{1,3}\b')
+PATTERN_SPACES = re.compile(r'\s+')
+
+from spacy.lang.en.stop_words import STOP_WORDS
+STOPWORDS = frozenset(STOP_WORDS)
+
+def remove_stopwords_fast(text: str) -> str:
+    return ' '.join(w for w in text.split() if w not in STOPWORDS)
+
+# ======================== PREPROCESSING ========================
+def preprocess_text(text: str) -> tuple:
+    if not text or not isinstance(text, str) or len(text) < 10:
+        return ('', '', 'unk')
     
-    # 1. Detecta lingua UNA SOLA VOLTA
-    lang = detect_language(text)
-    
+    detect_fn = detect_lang_fast if FASTTEXT_MODEL else detect_lang_fallback
+    lang = detect_fn(text)
     if lang == 'unk':
-        return {"text_lda": "", "text_llm": "", "language": "unk"}
+        return ('', '', 'unk')
     
-    # 2. Versione LLM (pulizia leggera)
-    text_llm = PATTERN_URL.sub('', text)
-    text_llm = ' '.join(text_llm.split())
+    text_llm = PATTERN_SPACES.sub(' ', text.replace('\n', ' ')).strip()
+    if text_llm.startswith(('http://', 'https://')):
+        text_llm = ''
     
-    # 3. Versione LDA (pulizia pesante)
     text_lda = unidecode(text.lower())
-    text_lda = PATTERN_STOPWORDS.sub('', text_lda)
-    text_lda = PATTERN_MENTIONS.sub('', text_lda)
-    text_lda = PATTERN_URL.sub('', text_lda)
-    text_lda = PATTERN_PUNCTUATION.sub(' ', text_lda)
-    text_lda = PATTERN_NEWLINES.sub(' ', text_lda)
-    text_lda = PATTERN_NUMBERS.sub('', text_lda)
-    text_lda = PATTERN_SHORT_WORDS.sub('', text_lda)
+    text_lda = PATTERN_CLEAN_ALL.sub(' ', text_lda)
+    text_lda = remove_stopwords_fast(text_lda)
+    text_lda = PATTERN_SHORT.sub('', text_lda)
     text_lda = PATTERN_SPACES.sub(' ', text_lda).strip()
     
-    return {"text_lda": text_lda, "text_llm": text_llm, "language": lang}
+    return (text_lda, text_llm, lang)
+
+def parse_timestamp(ts) -> datetime:
+    """Parse timestamp from various formats."""
+    if pd.isna(ts):
+        return None
+    
+    if isinstance(ts, datetime):
+        return ts
+    
+    if isinstance(ts, (int, float)):
+        # Unix timestamp
+        try:
+            return datetime.fromtimestamp(ts)
+        except:
+            return None
+    
+    if isinstance(ts, str):
+        # Try various formats
+        formats = [
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%d',
+            '%d/%m/%Y %H:%M:%S',
+            '%d/%m/%Y',
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(ts[:19], fmt)
+            except:
+                continue
+        
+        # Try pandas
+        try:
+            return pd.to_datetime(ts).to_pydatetime()
+        except:
+            return None
+    
+    return None
 
 # ======================== FILE PROCESSING ========================
-def process_single_file(args: tuple) -> pd.DataFrame:
-    """Processa un singolo file."""
-    filepath, channel_id = args
+def process_single_file(args: tuple) -> dict:
+    filepath, channel_id, start_date, end_date = args
     
     try:
-        df = pd.read_csv(filepath, sep='\t', compression='gzip', usecols=['text', 'timestamp'])
+        df = pd.read_csv(filepath, sep='\t', compression='gzip', 
+                        usecols=['text', 'timestamp'],
+                        dtype={'text': str})
         df = df.dropna(subset=['text'])
         
         if df.empty:
-            return None
+            return {'data': None, 'channel_id': channel_id, 'error': None, 
+                    'total_before_filter': 0, 'total_after_filter': 0}
         
-        df['text'] = df['text'].astype(str)
+        total_before_filter = len(df)
         
-        # Processa tutti i testi
-        results = [preprocess_text(t) for t in df['text']]
+        # Apply date filter if specified
+        if start_date is not None or end_date is not None:
+            df['parsed_timestamp'] = df['timestamp'].apply(parse_timestamp)
+            
+            if start_date is not None:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                df = df[df['parsed_timestamp'] >= start_dt]
+            
+            if end_date is not None:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include end date fully (end of day)
+                end_dt = end_dt.replace(hour=23, minute=59, second=59)
+                df = df[df['parsed_timestamp'] <= end_dt]
+            
+            df = df.drop(columns=['parsed_timestamp'])
         
-        df['text_lda'] = [r['text_lda'] for r in results]
-        df['text_llm'] = [r['text_llm'] for r in results]
-        df['language'] = [r['language'] for r in results]
-        df['channel_id'] = channel_id
+        total_after_filter = len(df)
         
-        return df
+        if df.empty:
+            return {'data': None, 'channel_id': channel_id, 'error': None,
+                    'total_before_filter': total_before_filter, 'total_after_filter': 0}
+        
+        texts = df['text'].tolist()
+        timestamps = df['timestamp'].tolist()
+        
+        results = [preprocess_text(t) for t in texts]
+        
+        data = {
+            'text': texts,
+            'timestamp': timestamps,
+            'text_lda': [r[0] for r in results],
+            'text_llm': [r[1] for r in results],
+            'language': [r[2] for r in results],
+            'channel_id': [channel_id] * len(texts)
+        }
+        
+        return {'data': data, 'channel_id': channel_id, 'error': None,
+                'total_before_filter': total_before_filter, 'total_after_filter': total_after_filter}
         
     except Exception as e:
-        print(f"Error processing {filepath}: {e}")
-        return None
-
-def write_chunks(df: pd.DataFrame, path: str, chunk_size: int = 50000) -> None:
-    """Scrive DataFrame in chunks."""
-    for i, start in enumerate(range(0, len(df), chunk_size)):
-        chunk = df.iloc[start:start+chunk_size]
-        mode = 'w' if i == 0 else 'a'
-        header = (i == 0)
-        chunk.to_csv(path, sep='\t', index=False, header=header, 
-                     mode=mode, compression='gzip')
+        return {'data': None, 'channel_id': channel_id, 'error': str(e),
+                'total_before_filter': 0, 'total_after_filter': 0}
 
 # ======================== MAIN ========================
 def main():
-    parser = argparse.ArgumentParser(description="Preprocess Telegram messages")
-    parser.add_argument("--level", type=str, default="0", help="Hierarchy level")
+    global START_DATE, END_DATE
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--level", type=str, default="0")
+    parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument("--start-date", type=str, default=None,
+                        help="Start date filter (YYYY-MM-DD)")
+    parser.add_argument("--end-date", type=str, default=None,
+                        help="End date filter (YYYY-MM-DD)")
     args = parser.parse_args()
     
     level = args.level
-    log_time(f"Starting preprocessing for level {level}")
+    n_workers = args.workers or min(16, max(1, cpu_count() - 2))
+    START_DATE = args.start_date
+    END_DATE = args.end_date
     
+    log_time(f"Starting preprocessing level {level} with {n_workers} workers")
+    if START_DATE:
+        log_time(f"  Start date filter: {START_DATE}")
+    if END_DATE:
+        log_time(f"  End date filter: {END_DATE}")
+    
+    # Init fasttext
+    t_start = start_timer("init_fasttext")
+    use_fasttext = init_fasttext()
+    end_timer("init_fasttext", t_start)
+    
+    # Paths
     base_dir = f"../../results/levels_automatic/level_{level}"
     preprocess_dir = f"{base_dir}/preprocessing"
     os.makedirs(preprocess_dir, exist_ok=True)
@@ -146,79 +279,401 @@ def main():
     extracted_dir = '../../../../telegram_2024/usc-tg-24-us-election/extracted'
     nodes_file = f"{base_dir}/nodes_level_{level}.csv.gz"
     
-    output_all_messages = f"{preprocess_dir}/messages_preprocessed.tsv.gz"
-    output_english_clean = f"{preprocess_dir}/messages_english_clean.tsv.gz"
+    output_all = f"{preprocess_dir}/messages_preprocessed.tsv.gz"
+    output_english = f"{preprocess_dir}/messages_english_clean.tsv.gz"
+    output_tracking = f"{preprocess_dir}/channels_tracking.json"
+    temp_file = f"{preprocess_dir}/_temp_all.tsv"
     
-    if os.path.exists(output_english_clean):
-        log_time(f"Already processed: {output_english_clean}")
+    if os.path.exists(output_english) and os.path.exists(output_tracking):
+        log_time(f"Already done: {output_english}")
         return
     
     if not os.path.exists(nodes_file):
-        log_time(f"ERROR: Nodes file not found: {nodes_file}")
+        log_time(f"ERROR: {nodes_file} not found")
         return
     
+    # Load nodes
+    t_start = start_timer("load_nodes")
     df_nodes = pd.read_csv(nodes_file, compression="gzip")
-    log_time(f"Loaded {len(df_nodes)} nodes from {nodes_file}")
+    all_nodes = set(df_nodes['type_and_id'].tolist())
+    end_timer("load_nodes", t_start)
+    log_time(f"Loaded {len(all_nodes)} nodes")
     
+    # Scan files
+    t_start = start_timer("scan_files")
+    no_folder, no_files, with_files = [], [], {}
     file_args = []
-    for _, row in df_nodes.iterrows():
-        channel_id = row['type_and_id']
-        channel_path = os.path.join(extracted_dir, channel_id)
-        files = glob(os.path.join(channel_path, '[0-9][0-9][0-9][0-9]-[0-1][0-9].tsv.gz'))
+    
+    for ch in df_nodes['type_and_id']:
+        ch_path = os.path.join(extracted_dir, ch)
+        if not os.path.isdir(ch_path):
+            no_folder.append(ch)
+            continue
         
-        if os.path.isdir(channel_path) and files:
-            file_args.extend([(f, channel_id) for f in files])
+        files = glob(os.path.join(ch_path, '[0-9][0-9][0-9][0-9]-[0-1][0-9].tsv.gz'))
+        if not files:
+            no_files.append(ch)
+            continue
+        
+        with_files[ch] = len(files)
+        file_args.extend([(f, ch, START_DATE, END_DATE) for f in files])
     
-    log_time(f"Found {len(file_args)} files to process")
+    end_timer("scan_files", t_start)
+    log_time(f"Files: {len(file_args)} from {len(with_files)} channels")
+    log_time(f"Skipped: {len(no_folder)} no folder, {len(no_files)} no files")
     
-    results = []
-    with Pool(cpu_count()) as pool:
-        for result in tqdm(pool.imap_unordered(process_single_file, file_args), 
-                          total=len(file_args), desc="Processing"):
-            if result is not None:
-                results.append(result)
-    
-    if not results:
-        log_time("ERROR: No messages processed")
+    # Handle no files case
+    if not file_args:
+        log_time("WARNING: No files to process - creating empty outputs")
+        
+        df_empty = pd.DataFrame(columns=['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id'])
+        df_empty.to_csv(output_all, sep='\t', index=False, compression='gzip')
+        df_empty.to_csv(output_english, sep='\t', index=False, compression='gzip')
+        
+        tracking = {
+            "level": level,
+            "start_date": START_DATE,
+            "end_date": END_DATE,
+            "total_nodes": len(all_nodes),
+            "total_messages": 0,
+            "total_messages_before_date_filter": 0,
+            "english_messages": 0,
+            "summary": {
+                "channels_no_folder": len(no_folder),
+                "channels_no_files": len(no_files),
+                "channels_lost_in_processing": 0,
+                "channels_no_english": 0,
+                "channels_only_short_messages": 0,
+                "channels_with_valid_messages": 0
+            },
+            "details": {
+                "channels_no_folder": sorted(no_folder),
+                "channels_no_files": sorted(no_files),
+                "channels_lost_in_processing": [],
+                "channels_no_english": [],
+                "channels_only_short_messages": [],
+                "channels_with_valid_messages": []
+            }
+        }
+        
+        with open(output_tracking, 'w') as f:
+            json.dump(tracking, f, indent=2)
+        
+        total_time = time.perf_counter() - START_TIME
+        STEP_TIMES["total"] = total_time
+        
+        with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
+            f.write(f"Step 1: Preprocessing\n")
+            f.write(f"Level: {level}\n")
+            f.write(f"Status: COMPLETED (no files)\n")
+            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Total time: {total_time:.2f}s\n\n")
+            f.write(f"Timing breakdown:\n")
+            for step_name, step_time in STEP_TIMES.items():
+                f.write(f"  {step_name}: {step_time:.2f}s\n")
+            f.write(f"\nResults:\n")
+            f.write(f"  Total messages: 0\n")
+            f.write(f"  English clean: 0\n")
+            f.write(f"  Channels: 0\n")
         return
     
-    log_time("Concatenating results...")
-    df_all = pd.concat(results, ignore_index=True)
-    log_time(f"Combined {len(df_all)} messages")
-    del results
+    # Process files
+    t_start = start_timer("process_files")
+    channels_processed = set()
+    all_errors = []
+    total_msgs = 0
+    total_msgs_before_filter = 0
+    first_write = True
+    
+    buffer = {k: [] for k in ['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id']}
+    buffer_count = 0
+    
+    def flush_buffer():
+        nonlocal buffer, buffer_count, first_write, total_msgs
+        if not buffer['text']:
+            return
+        
+        df_buf = pd.DataFrame(buffer)
+        total_msgs += len(df_buf)
+        
+        if first_write:
+            df_buf.to_csv(temp_file, sep='\t', index=False, mode='w')
+            first_write = False
+        else:
+            df_buf.to_csv(temp_file, sep='\t', index=False, mode='a', header=False)
+        
+        buffer = {k: [] for k in buffer.keys()}
+        buffer_count = 0
+        gc.collect()
+    
+    log_time("Processing files with incremental save...")
+    
+    with Pool(n_workers) as pool:
+        for result in tqdm(pool.imap_unordered(process_single_file, file_args),
+                          total=len(file_args), desc="Processing"):
+            if result['error']:
+                all_errors.append((result['channel_id'], result['error']))
+                continue
+            
+            total_msgs_before_filter += result.get('total_before_filter', 0)
+            
+            if result['data']:
+                channels_processed.add(result['channel_id'])
+                for k in buffer:
+                    buffer[k].extend(result['data'][k])
+                buffer_count += 1
+                
+                if buffer_count >= SAVE_EVERY:
+                    flush_buffer()
+    
+    flush_buffer()
+    end_timer("process_files", t_start)
+    log_time(f"Total messages before date filter: {total_msgs_before_filter}")
+    log_time(f"Total messages after date filter: {total_msgs}")
+    
+    # Handle no messages case
+    if total_msgs == 0 or not os.path.exists(temp_file):
+        log_time("WARNING: No messages processed - creating empty outputs")
+        
+        df_empty = pd.DataFrame(columns=['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id'])
+        df_empty.to_csv(output_all, sep='\t', index=False, compression='gzip')
+        df_empty.to_csv(output_english, sep='\t', index=False, compression='gzip')
+        
+        ch_lost = set(with_files.keys()) - channels_processed
+        
+        tracking = {
+            "level": level,
+            "start_date": START_DATE,
+            "end_date": END_DATE,
+            "total_nodes": len(all_nodes),
+            "total_messages": 0,
+            "total_messages_before_date_filter": total_msgs_before_filter,
+            "english_messages": 0,
+            "summary": {
+                "channels_no_folder": len(no_folder),
+                "channels_no_files": len(no_files),
+                "channels_lost_in_processing": len(ch_lost),
+                "channels_no_english": 0,
+                "channels_only_short_messages": 0,
+                "channels_with_valid_messages": 0
+            },
+            "details": {
+                "channels_no_folder": sorted(no_folder),
+                "channels_no_files": sorted(no_files),
+                "channels_lost_in_processing": sorted(ch_lost),
+                "channels_no_english": [],
+                "channels_only_short_messages": [],
+                "channels_with_valid_messages": []
+            }
+        }
+        
+        with open(output_tracking, 'w') as f:
+            json.dump(tracking, f, indent=2)
+        
+        total_time = time.perf_counter() - START_TIME
+        STEP_TIMES["total"] = total_time
+        
+        with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
+            f.write(f"Step 1: Preprocessing\n")
+            f.write(f"Level: {level}\n")
+            f.write(f"Status: COMPLETED (no messages)\n")
+            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Total time: {total_time:.2f}s\n\n")
+            f.write(f"Timing breakdown:\n")
+            for step_name, step_time in STEP_TIMES.items():
+                f.write(f"  {step_name}: {step_time:.2f}s\n")
+        return
+    
+    # Save all messages (compressed)
+    t_start = start_timer("save_all_messages")
+    log_time("Saving all messages (compressed)...")
+    chunk_iter = pd.read_csv(temp_file, sep='\t', chunksize=100000)
+    first_chunk = True
+    for chunk in chunk_iter:
+        if first_chunk:
+            chunk.to_csv(output_all, sep='\t', index=False, compression='gzip', mode='w')
+            first_chunk = False
+        else:
+            chunk.to_csv(output_all, sep='\t', index=False, compression='gzip', mode='a', header=False)
+    end_timer("save_all_messages", t_start)
+    
+    # Filter English
+    t_start = start_timer("filter_english")
+    log_time("Filtering English messages in chunks...")
+    
+    chunk_iter = pd.read_csv(temp_file, sep='\t', chunksize=100000)
+    english_chunks = []
+    ch_with_english = set()
+    
+    for chunk in tqdm(chunk_iter, desc="Filtering"):
+        mask = (
+            (chunk['language'] == 'en') &
+            (chunk['text_lda'].astype(str).str.len() > 0) &
+            (chunk['text_llm'].astype(str).str.len() > 0)
+        )
+        en_chunk = chunk[mask]
+        if len(en_chunk) > 0:
+            ch_with_english.update(en_chunk['channel_id'].unique())
+            english_chunks.append(en_chunk)
+    
+    if os.path.exists(temp_file):
+        os.remove(temp_file)
+    
+    end_timer("filter_english", t_start)
+    
+    # Handle no English case
+    if not english_chunks:
+        log_time("WARNING: No English messages found - creating empty file")
+        
+        df_en = pd.DataFrame(columns=['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id'])
+        df_en.to_csv(output_english, sep='\t', index=False, compression='gzip')
+        
+        ch_lost = set(with_files.keys()) - channels_processed
+        ch_no_en = channels_processed
+        
+        tracking = {
+            "level": level,
+            "start_date": START_DATE,
+            "end_date": END_DATE,
+            "total_nodes": len(all_nodes),
+            "total_messages": total_msgs,
+            "total_messages_before_date_filter": total_msgs_before_filter,
+            "english_messages": 0,
+            "summary": {
+                "channels_no_folder": len(no_folder),
+                "channels_no_files": len(no_files),
+                "channels_lost_in_processing": len(ch_lost),
+                "channels_no_english": len(ch_no_en),
+                "channels_only_short_messages": 0,
+                "channels_with_valid_messages": 0
+            },
+            "details": {
+                "channels_no_folder": sorted(no_folder),
+                "channels_no_files": sorted(no_files),
+                "channels_lost_in_processing": sorted(ch_lost),
+                "channels_no_english": sorted(ch_no_en),
+                "channels_only_short_messages": [],
+                "channels_with_valid_messages": []
+            }
+        }
+        
+        with open(output_tracking, 'w') as f:
+            json.dump(tracking, f, indent=2)
+        
+        total_time = time.perf_counter() - START_TIME
+        STEP_TIMES["total"] = total_time
+        
+        with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
+            f.write(f"Step 1: Preprocessing\n")
+            f.write(f"Level: {level}\n")
+            f.write(f"Status: COMPLETED (no English)\n")
+            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Total time: {total_time:.2f}s\n\n")
+            f.write(f"Timing breakdown:\n")
+            for step_name, step_time in STEP_TIMES.items():
+                f.write(f"  {step_name}: {step_time:.2f}s\n")
+            f.write(f"\nResults:\n")
+            f.write(f"  Total messages: {total_msgs}\n")
+            f.write(f"  English clean: 0\n")
+        return
+    
+    # Concatenate English
+    t_start = start_timer("concat_english")
+    log_time("Concatenating English chunks...")
+    df_en = pd.concat(english_chunks, ignore_index=True)
+    del english_chunks
     gc.collect()
+    end_timer("concat_english", t_start)
+    log_time(f"English messages: {len(df_en)}")
     
-    df_all = df_all.dropna()
-    df_all = df_all[df_all['text_lda'].str.strip() != '']
-    df_all = df_all[df_all['text_llm'].str.strip() != '']
+    # Dedup
+    t_start = start_timer("dedup")
+    len_before = len(df_en)
+    df_en = df_en.drop_duplicates(subset=['text_lda'])
+    end_timer("dedup", t_start)
+    log_time(f"After dedup: {len(df_en)} (-{len_before - len(df_en)})")
     
-    df_english = df_all[df_all['language'] == 'en'].copy()
-    log_time(f"English messages: {len(df_english)}")
+    ch_before_short = set(df_en['channel_id'].unique())
     
-    len_before = len(df_english)
-    df_english = df_english.drop_duplicates(subset=['text_lda'])
-    log_time(f"After dedup: {len(df_english)} (removed {len_before - len(df_english)})")
+    # Remove short
+    t_start = start_timer("filter_short")
+    token_counts = df_en['text_lda'].str.split().str.len()
+    df_en = df_en[token_counts > MIN_TOKENS]
+    end_timer("filter_short", t_start)
+    log_time(f"After short filter: {len(df_en)}")
     
-    df_english = df_english[
-        df_english['text_lda'].str.split().apply(len) > MIN_TOKENS_FOR_VALID_MESSAGE
-    ]
-    log_time(f"After removing short messages: {len(df_english)}")
+    ch_final = set(df_en['channel_id'].unique())
     
-    log_time("Saving all messages...")
-    write_chunks(df_all, output_all_messages)
-    log_time(f"Saved all messages to {output_all_messages}")
+    # Save English
+    t_start = start_timer("save_english")
+    df_en.to_csv(output_english, sep='\t', index=False, compression='gzip')
+    end_timer("save_english", t_start)
+    log_time(f"Saved: {output_english}")
     
-    log_time("Saving English messages...")
-    df_english.to_csv(output_english_clean, sep='\t', index=False, compression='gzip')
-    log_time(f"Saved clean English messages to {output_english_clean}")
+    # Tracking
+    ch_lost = set(with_files.keys()) - channels_processed
+    ch_no_en = channels_processed - ch_with_english
+    ch_short = ch_before_short - ch_final
     
+    log_time(f"\n{'='*50}")
+    log_time(f"TRACKING: {len(all_nodes)} nodes")
+    log_time(f"  No folder: {len(no_folder)}")
+    log_time(f"  No files: {len(no_files)}")
+    log_time(f"  Errors: {len(ch_lost)}")
+    log_time(f"  No English: {len(ch_no_en)}")
+    log_time(f"  Only short: {len(ch_short)}")
+    log_time(f"  Final: {len(ch_final)}")
+    log_time(f"{'='*50}")
+    
+    tracking = {
+        "level": level,
+        "start_date": START_DATE,
+        "end_date": END_DATE,
+        "total_nodes": len(all_nodes),
+        "total_messages": total_msgs,
+        "total_messages_before_date_filter": total_msgs_before_filter,
+        "english_messages": len(df_en),
+        "summary": {
+            "channels_no_folder": len(no_folder),
+            "channels_no_files": len(no_files),
+            "channels_lost_in_processing": len(ch_lost),
+            "channels_no_english": len(ch_no_en),
+            "channels_only_short_messages": len(ch_short),
+            "channels_with_valid_messages": len(ch_final)
+        },
+        "details": {
+            "channels_no_folder": sorted(no_folder),
+            "channels_no_files": sorted(no_files),
+            "channels_lost_in_processing": sorted(ch_lost),
+            "channels_no_english": sorted(ch_no_en),
+            "channels_only_short_messages": sorted(ch_short),
+            "channels_with_valid_messages": sorted(ch_final)
+        }
+    }
+    
+    with open(output_tracking, 'w') as f:
+        json.dump(tracking, f, indent=2)
+    
+    # Final timing
     total_time = time.perf_counter() - START_TIME
-    log_time(f"COMPLETED in {total_time:.2f}s")
+    STEP_TIMES["total"] = total_time
+    log_time(f"DONE in {total_time:.1f}s ({total_time/60:.1f} min)")
     
-    with open(f"{preprocess_dir}/step1_completed.txt", "w") as f:
-        f.write(f"Preprocessing completed in {total_time:.2f}s\n")
-        f.write(f"Total messages: {len(df_all)}\n")
-        f.write(f"English clean messages: {len(df_english)}\n")
+    with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
+        f.write(f"Step 1: Preprocessing\n")
+        f.write(f"Level: {level}\n")
+        f.write(f"Status: COMPLETED\n")
+        f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+        f.write(f"Total time: {total_time:.2f}s\n\n")
+        f.write(f"Timing breakdown:\n")
+        for step_name, step_time in STEP_TIMES.items():
+            f.write(f"  {step_name}: {step_time:.2f}s\n")
+        f.write(f"\nResults:\n")
+        f.write(f"  Total messages before date filter: {total_msgs_before_filter}\n")
+        f.write(f"  Total messages after date filter: {total_msgs}\n")
+        f.write(f"  English clean: {len(df_en)}\n")
+        f.write(f"  Channels: {len(ch_final)}\n")
+        f.write(f"  Language detection: {'fasttext' if use_fasttext else 'langdetect'}\n")
 
 if __name__ == "__main__":
     main()

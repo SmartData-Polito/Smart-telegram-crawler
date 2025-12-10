@@ -1,81 +1,28 @@
-# ==============================================================================
-# COMANDI DI TEST - Copia e incolla uno alla volta
-# ==============================================================================
+# Analisi completa di tutti i topic
+python analyze_topic_channels.py --level 0
 
-# 1. Vai nella cartella
-cd telegram_analysis
+# Analisi di un topic specifico
+python analyze_topic_channels.py --level 0 --topic 5
 
-# 2. Installa dipendenze
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+# Per non_visited
+python analyze_topic_channels.py --level non_visited
 
-# 3. Crea cartelle
-mkdir -p ../results/levels_automatic/level_0
+# Con più canali per topic
+python analyze_topic_channels.py --level 0 --top-n 50
+```
 
-# 4. Crea file seed di esempio (sostituisci con i tuoi canali veri)
-echo "type_and_id
-channel_123456
-channel_789012
-channel_345678" > ../results/levels_automatic/level_0/nodes_level_0.csv
+---
 
-# 5. Verifica che il file sia stato creato
-cat ../results/levels_automatic/level_0/nodes_level_0.csv
-# ASPETTATI: lista dei canali, uno per riga
+**Output esempio:**
+```
+======================================================================
+TOPIC 5 [POLITICAL]
+Keywords: trump, election, vote, biden, president, campaign, polls
+Total messages: 45,231
+Unique channels: 89
 
-# 6. Preprocessing
-python step1_preprocess.py --level 0
-# ASPETTATI: barra di progresso, poi "COMPLETED in XXs"
-# CREA: ../results/levels_automatic/level_0/preprocessing/messages_english_clean.tsv.gz
-
-# 7. LDA Training  
-python step2_lda_train.py --level 0
-# ASPETTATI: "Best k=XX, cv=0.XXXX", poi "COMPLETED"
-# CREA: ../results/levels_automatic/level_0/lda/models/lda_best.joblib
-
-# 8. Estrai topics
-python step3_extract_topics.py --level 0
-# ASPETTATI: "Loaded XX documents", poi lista topic
-# CREA: ../results/levels_automatic/level_0/lda/topics_keywords.txt
-
-# 9. Classifica con ChatGPT (dry-run prima per vedere)
-python step4_classify_topics.py --level 0 --dry-run
-# ASPETTATI: mostra il prompt che manderebbe all'API
-
-# 10. Classifica per davvero
-python step4_classify_topics.py --level 0
-# ASPETTATI: "Topic X -> POLITICS" o "non-politics" per ogni topic
-# CREA: ../results/levels_automatic/level_0/lda/politics_topics.json
-
-# 11. Calcola percentuale politica per canale
-python step5_compute_politics_ratio.py --level 0 --threshold 0.4
-# ASPETTATI: "Political (>=40%): XX channels"
-# CREA: ../results/levels_automatic/level_0/lda/political_channels.json
-
-# 12. Prepara level 1 (children dei canali politici)
-python step6_prepare_next_level.py --level 0
-# ASPETTATI: "Saved XX nodes for level 1"
-# CREA: ../results/levels_automatic/level_1/nodes_level_1.csv
-
-# 13. Verifica risultati
-cat ../results/levels_automatic/level_0/lda/politics_topics.json
-cat ../results/levels_automatic/level_0/lda/political_channels.json
-
-# ==============================================================================
-# OPPURE: Esegui tutto automaticamente
-# ==============================================================================
-
-python master_orchestrator.py --start-level 0 --max-levels 3
-# ASPETTATI: esegue step 1-6 per level 0, poi level 1, poi level 2...
-# Si ferma quando non ci sono più canali nuovi
-
-# ==============================================================================
-# DEBUG - Se qualcosa non funziona
-# ==============================================================================
-
-# Vedi cosa c'è nelle cartelle
-ls -la ../results/levels_automatic/level_0/
-ls -la ../results/levels_automatic/level_0/preprocessing/
-ls -la ../results/levels_automatic/level_0/lda/
-
-# Leggi i file di completamento
-cat ../results/levels_automatic/level_0/lda/step2_completed.txt
+Top 20 channels:
+   1. channel_12345: 5,432 msgs (78.2% of channel)
+   2. channel_67890: 3,211 msgs (65.1% of channel)
+   3. channel_11111: 2,987 msgs (45.3% of channel)
+   ...
