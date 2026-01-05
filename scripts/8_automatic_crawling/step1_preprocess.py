@@ -2,7 +2,8 @@
 """
 STEP 1: Preprocess Telegram messages for topic detection.
 Usage: python step1_preprocess.py --level 0
-       python step1_preprocess.py --level 0 --start-date 2024-01-01 --end-date 2024-06-30
+       python step1_preprocess.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
+       python step1_preprocess.py --level 0 --start-date 2024-07-15 --end-date 2024-08-15
 """
 
 import os
@@ -39,13 +40,10 @@ def end_timer(name: str, start: float) -> float:
 # ======================== CONFIG ========================
 MIN_TOKENS = 5
 SAVE_EVERY = 500
+FILTER_CHUNKSIZE = 500000  # Increased for better performance
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OMP_NUM_THREADS"] = "1"
-
-# Global date filters (set in main)
-START_DATE = None
-END_DATE = None
 
 # ======================== FASTTEXT LANGUAGE DETECTION ========================
 FASTTEXT_MODEL = None
@@ -154,14 +152,12 @@ def parse_timestamp(ts) -> datetime:
         return ts
     
     if isinstance(ts, (int, float)):
-        # Unix timestamp
         try:
             return datetime.fromtimestamp(ts)
         except:
             return None
     
     if isinstance(ts, str):
-        # Try various formats
         formats = [
             '%Y-%m-%d %H:%M:%S',
             '%Y-%m-%dT%H:%M:%S',
@@ -175,7 +171,6 @@ def parse_timestamp(ts) -> datetime:
             except:
                 continue
         
-        # Try pandas
         try:
             return pd.to_datetime(ts).to_pydatetime()
         except:
@@ -209,7 +204,6 @@ def process_single_file(args: tuple) -> dict:
             
             if end_date is not None:
                 end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-                # Include end date fully (end of day)
                 end_dt = end_dt.replace(hour=23, minute=59, second=59)
                 df = df[df['parsed_timestamp'] <= end_dt]
             
@@ -244,10 +238,10 @@ def process_single_file(args: tuple) -> dict:
 
 # ======================== MAIN ========================
 def main():
-    global START_DATE, END_DATE
-    
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, default="0")
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--start-date", type=str, default=None,
                         help="Start date filter (YYYY-MM-DD)")
@@ -256,15 +250,17 @@ def main():
     args = parser.parse_args()
     
     level = args.level
+    base_dir = args.base_dir
     n_workers = args.workers or min(16, max(1, cpu_count() - 2))
-    START_DATE = args.start_date
-    END_DATE = args.end_date
+    start_date = args.start_date
+    end_date = args.end_date
     
     log_time(f"Starting preprocessing level {level} with {n_workers} workers")
-    if START_DATE:
-        log_time(f"  Start date filter: {START_DATE}")
-    if END_DATE:
-        log_time(f"  End date filter: {END_DATE}")
+    log_time(f"  Base dir: {base_dir}")
+    if start_date:
+        log_time(f"  Start date filter: {start_date}")
+    if end_date:
+        log_time(f"  End date filter: {end_date}")
     
     # Init fasttext
     t_start = start_timer("init_fasttext")
@@ -272,14 +268,13 @@ def main():
     end_timer("init_fasttext", t_start)
     
     # Paths
-    base_dir = f"../../results/levels_automatic/level_{level}"
-    preprocess_dir = f"{base_dir}/preprocessing"
+    level_dir = f"{base_dir}/level_{level}"
+    preprocess_dir = f"{level_dir}/preprocessing"
     os.makedirs(preprocess_dir, exist_ok=True)
     
     extracted_dir = '../../../../telegram_2024/usc-tg-24-us-election/extracted'
-    nodes_file = f"{base_dir}/nodes_level_{level}.csv.gz"
+    nodes_file = f"{level_dir}/nodes_level_{level}.csv.gz"
     
-    output_all = f"{preprocess_dir}/messages_preprocessed.tsv.gz"
     output_english = f"{preprocess_dir}/messages_english_clean.tsv.gz"
     output_tracking = f"{preprocess_dir}/channels_tracking.json"
     temp_file = f"{preprocess_dir}/_temp_all.tsv"
@@ -316,7 +311,7 @@ def main():
             continue
         
         with_files[ch] = len(files)
-        file_args.extend([(f, ch, START_DATE, END_DATE) for f in files])
+        file_args.extend([(f, ch, start_date, end_date) for f in files])
     
     end_timer("scan_files", t_start)
     log_time(f"Files: {len(file_args)} from {len(with_files)} channels")
@@ -327,13 +322,12 @@ def main():
         log_time("WARNING: No files to process - creating empty outputs")
         
         df_empty = pd.DataFrame(columns=['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id'])
-        df_empty.to_csv(output_all, sep='\t', index=False, compression='gzip')
         df_empty.to_csv(output_english, sep='\t', index=False, compression='gzip')
         
         tracking = {
             "level": level,
-            "start_date": START_DATE,
-            "end_date": END_DATE,
+            "start_date": start_date,
+            "end_date": end_date,
             "total_nodes": len(all_nodes),
             "total_messages": 0,
             "total_messages_before_date_filter": 0,
@@ -365,16 +359,13 @@ def main():
         with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
             f.write(f"Step 1: Preprocessing\n")
             f.write(f"Level: {level}\n")
+            f.write(f"Base dir: {base_dir}\n")
             f.write(f"Status: COMPLETED (no files)\n")
-            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Date filter: {start_date} to {end_date}\n")
             f.write(f"Total time: {total_time:.2f}s\n\n")
             f.write(f"Timing breakdown:\n")
             for step_name, step_time in STEP_TIMES.items():
                 f.write(f"  {step_name}: {step_time:.2f}s\n")
-            f.write(f"\nResults:\n")
-            f.write(f"  Total messages: 0\n")
-            f.write(f"  English clean: 0\n")
-            f.write(f"  Channels: 0\n")
         return
     
     # Process files
@@ -436,15 +427,14 @@ def main():
         log_time("WARNING: No messages processed - creating empty outputs")
         
         df_empty = pd.DataFrame(columns=['text', 'timestamp', 'text_lda', 'text_llm', 'language', 'channel_id'])
-        df_empty.to_csv(output_all, sep='\t', index=False, compression='gzip')
         df_empty.to_csv(output_english, sep='\t', index=False, compression='gzip')
         
         ch_lost = set(with_files.keys()) - channels_processed
         
         tracking = {
             "level": level,
-            "start_date": START_DATE,
-            "end_date": END_DATE,
+            "start_date": start_date,
+            "end_date": end_date,
             "total_nodes": len(all_nodes),
             "total_messages": 0,
             "total_messages_before_date_filter": total_msgs_before_filter,
@@ -476,32 +466,28 @@ def main():
         with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
             f.write(f"Step 1: Preprocessing\n")
             f.write(f"Level: {level}\n")
+            f.write(f"Base dir: {base_dir}\n")
             f.write(f"Status: COMPLETED (no messages)\n")
-            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Date filter: {start_date} to {end_date}\n")
             f.write(f"Total time: {total_time:.2f}s\n\n")
             f.write(f"Timing breakdown:\n")
             for step_name, step_time in STEP_TIMES.items():
                 f.write(f"  {step_name}: {step_time:.2f}s\n")
         return
     
-    # Save all messages (compressed)
-    t_start = start_timer("save_all_messages")
-    log_time("Saving all messages (compressed)...")
-    chunk_iter = pd.read_csv(temp_file, sep='\t', chunksize=100000)
-    first_chunk = True
-    for chunk in chunk_iter:
-        if first_chunk:
-            chunk.to_csv(output_all, sep='\t', index=False, compression='gzip', mode='w')
-            first_chunk = False
-        else:
-            chunk.to_csv(output_all, sep='\t', index=False, compression='gzip', mode='a', header=False)
-    end_timer("save_all_messages", t_start)
+    # =================================================================
+    # SKIP saving all messages - NOT NEEDED by subsequent steps!
+    # Only messages_english_clean.tsv.gz is used by step2+
+    # =================================================================
+    t_start = start_timer("skip_full_save")
+    log_time("Skipping full messages save (only English file needed by pipeline)")
+    end_timer("skip_full_save", t_start)
     
-    # Filter English
+    # Filter English directly from temp file
     t_start = start_timer("filter_english")
-    log_time("Filtering English messages in chunks...")
+    log_time(f"Filtering English messages (chunksize={FILTER_CHUNKSIZE})...")
     
-    chunk_iter = pd.read_csv(temp_file, sep='\t', chunksize=100000)
+    chunk_iter = pd.read_csv(temp_file, sep='\t', chunksize=FILTER_CHUNKSIZE)
     english_chunks = []
     ch_with_english = set()
     
@@ -516,8 +502,10 @@ def main():
             ch_with_english.update(en_chunk['channel_id'].unique())
             english_chunks.append(en_chunk)
     
+    # Remove temp file immediately after reading
     if os.path.exists(temp_file):
         os.remove(temp_file)
+        log_time("Removed temp file")
     
     end_timer("filter_english", t_start)
     
@@ -533,8 +521,8 @@ def main():
         
         tracking = {
             "level": level,
-            "start_date": START_DATE,
-            "end_date": END_DATE,
+            "start_date": start_date,
+            "end_date": end_date,
             "total_nodes": len(all_nodes),
             "total_messages": total_msgs,
             "total_messages_before_date_filter": total_msgs_before_filter,
@@ -566,15 +554,13 @@ def main():
         with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
             f.write(f"Step 1: Preprocessing\n")
             f.write(f"Level: {level}\n")
+            f.write(f"Base dir: {base_dir}\n")
             f.write(f"Status: COMPLETED (no English)\n")
-            f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+            f.write(f"Date filter: {start_date} to {end_date}\n")
             f.write(f"Total time: {total_time:.2f}s\n\n")
             f.write(f"Timing breakdown:\n")
             for step_name, step_time in STEP_TIMES.items():
                 f.write(f"  {step_name}: {step_time:.2f}s\n")
-            f.write(f"\nResults:\n")
-            f.write(f"  Total messages: {total_msgs}\n")
-            f.write(f"  English clean: 0\n")
         return
     
     # Concatenate English
@@ -627,8 +613,8 @@ def main():
     
     tracking = {
         "level": level,
-        "start_date": START_DATE,
-        "end_date": END_DATE,
+        "start_date": start_date,
+        "end_date": end_date,
         "total_nodes": len(all_nodes),
         "total_messages": total_msgs,
         "total_messages_before_date_filter": total_msgs_before_filter,
@@ -662,8 +648,9 @@ def main():
     with open(f"{preprocess_dir}/step1_completed.txt", 'w') as f:
         f.write(f"Step 1: Preprocessing\n")
         f.write(f"Level: {level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
-        f.write(f"Date filter: {START_DATE} to {END_DATE}\n")
+        f.write(f"Date filter: {start_date} to {end_date}\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")
         f.write(f"Timing breakdown:\n")
         for step_name, step_time in STEP_TIMES.items():

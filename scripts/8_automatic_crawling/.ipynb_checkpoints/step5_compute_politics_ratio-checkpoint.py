@@ -2,6 +2,7 @@
 """
 STEP 5: Compute political message percentage per channel.
 Usage: python step5_compute_politics_ratio.py --level 0 --threshold 0.4
+       python step5_compute_politics_ratio.py --level 0 --threshold 0.4 --base-dir ../../results/experiments/peak_jul_aug
 """
 
 import os
@@ -34,25 +35,29 @@ DEFAULT_THRESHOLD = 0.40
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     args = parser.parse_args()
     
     level = args.level
+    base_dir = args.base_dir
     threshold = args.threshold
     
     log_time(f"Computing political ratios for level {level} (threshold={threshold})")
+    log_time(f"  Base dir: {base_dir}")
     
     # Paths
-    base_dir = f"../../results/levels_automatic/level_{level}"
-    lda_dir = f"{base_dir}/lda"
-    preprocess_dir = f"{base_dir}/preprocessing"
-    classification_dir = f"{base_dir}/classification"
-    channel_analysis_dir = f"{base_dir}/channel_analysis"
+    level_dir = f"{base_dir}/level_{level}"
+    lda_dir = f"{level_dir}/lda"
+    preprocess_dir = f"{level_dir}/preprocessing"
+    classification_dir = f"{level_dir}/classification"
+    channel_analysis_dir = f"{level_dir}/channel_analysis"
     os.makedirs(channel_analysis_dir, exist_ok=True)
     
     # Load nodes file for tracking
     t_start = start_timer("load_nodes")
-    nodes_file = f"{base_dir}/nodes_level_{level}.csv.gz"
+    nodes_file = f"{level_dir}/nodes_level_{level}.csv.gz"
     all_input_channels = set()
     if os.path.exists(nodes_file):
         df_nodes = pd.read_csv(nodes_file, compression='gzip')
@@ -232,6 +237,7 @@ def main():
     with open(f"{channel_analysis_dir}/step5_completed.txt", 'w') as f:
         f.write(f"Step 5: Politics Ratio Computation\n")
         f.write(f"Level: {level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")
         f.write(f"Timing breakdown:\n")

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-STEP 4: Classify topics as political or non-political using ChatGPT.
-Usage: python step4_classify_topics.py --level 0
-       python step4_classify_topics.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
+STEP 4: Classify topics as GAMING or NON-GAMING using ChatGPT.
+Be STRICT: only clearly gaming-related topics.
+
+Usage: python step4_classify_topics.py --level 0 --base-dir ../../results/experiments_tgdataset/threshold_40_pure
 """
 
 import os
@@ -32,13 +33,13 @@ def end_timer(name: str, start: float) -> float:
 
 # ======================== CONFIG ========================
 NUM_TOP_KEYWORDS = 40
-MODEL_NAME = "gpt-5-nano"  
+MODEL_NAME = "gpt-5-nano"
 
 # ======================== MAIN ========================
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
-    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+    parser.add_argument("--base-dir", type=str, required=True,
                         help="Base directory for results")
     args = parser.parse_args()
     
@@ -119,7 +120,7 @@ def main():
     # Classify topics
     t_start = start_timer("classify_topics")
     results = []
-    politics_topics = []
+    gaming_topics = []
     errors = 0
     
     for topic in topics_data:
@@ -128,9 +129,23 @@ def main():
         
         log_time(f"Classifying topic {topic_id}/{len(topics_data)-1}...")
         
-        prompt = f"""Analyze these keywords from a topic model and determine if this topic is about POLITICS.
+        prompt = f"""Analyze these keywords from a topic model and determine if this topic is about GAMING.
 
-Political topics include: elections, voting, political parties, government policies, politicians, legislation, political movements, campaigns, political ideologies, international relations, political news.
+GAMING topics include:
+- Video games (any platform: PC, console, mobile)
+- Game mods, cheats, hacks, aimbots
+- Esports, gaming tournaments
+- Specific games (Minecraft, Fortnite, PUBG, COD, GTA, etc.)
+- Gaming communities, clans, guilds
+- Game streaming (Twitch, YouTube Gaming)
+
+NOT GAMING (be STRICT):
+- General entertainment (movies, TV, music) → NO
+- General software/tech → NO
+- Crypto/trading/NFT → NO
+- Adult content → NO
+- News, politics → NO
+- Social media, memes (unless specifically gaming memes) → NO
 
 Keywords: {', '.join(keywords)}
 
@@ -144,19 +159,19 @@ Answer with ONLY 'yes' or 'no'."""
             )
             
             answer = response.choices[0].message.content.strip().lower()
-            is_political = answer.startswith('yes') or answer == 'y'
+            is_gaming = answer.startswith('yes') or answer == 'y'
             
-            log_time(f"  -> {'POLITICS' if is_political else 'non-politics'} (raw: '{answer}')")
+            log_time(f"  -> {'GAMING' if is_gaming else 'non-gaming'} (raw: '{answer}')")
             
             results.append({
                 "topic_id": topic_id,
                 "keywords": keywords[:10],
-                "is_political": is_political,
+                "is_gaming": is_gaming,
                 "raw_response": answer
             })
             
-            if is_political:
-                politics_topics.append(topic_id)
+            if is_gaming:
+                gaming_topics.append(topic_id)
             
             time.sleep(0.5)  # Rate limiting
             
@@ -166,7 +181,7 @@ Answer with ONLY 'yes' or 'no'."""
             results.append({
                 "topic_id": topic_id,
                 "keywords": keywords[:10],
-                "is_political": False,
+                "is_gaming": False,
                 "error": str(e)
             })
     
@@ -174,30 +189,47 @@ Answer with ONLY 'yes' or 'no'."""
     
     # Save results
     t_start = start_timer("save_results")
+    
+    # Full results
     with open(f"{classification_dir}/topics_classified.json", 'w') as f:
         json.dump(results, f, indent=2)
     log_time(f"Saved full results to {classification_dir}/topics_classified.json")
     
-    politics_data = {
-        "politics_topics": politics_topics,
+    # Gaming topics summary
+    gaming_data = {
+        "gaming_topics": gaming_topics,
         "total_topics": len(topics_data),
-        "political_count": len(politics_topics),
-        "non_political_count": len(topics_data) - len(politics_topics)
+        "gaming_count": len(gaming_topics),
+        "non_gaming_count": len(topics_data) - len(gaming_topics)
+    }
+    
+    with open(f"{classification_dir}/gaming_topics.json", 'w') as f:
+        json.dump(gaming_data, f, indent=2)
+    log_time(f"Saved gaming topics list to {classification_dir}/gaming_topics.json")
+    
+    # Also save as politics_topics.json for compatibility with step5
+    compat_data = {
+        "politics_topics": gaming_topics,  # Compatibility key
+        "gaming_topics": gaming_topics,
+        "total_topics": len(topics_data),
+        "political_count": len(gaming_topics),
+        "non_political_count": len(topics_data) - len(gaming_topics)
     }
     
     with open(f"{classification_dir}/politics_topics.json", 'w') as f:
-        json.dump(politics_data, f, indent=2)
-    log_time(f"Saved politics topics list to {classification_dir}/politics_topics.json")
+        json.dump(compat_data, f, indent=2)
+    log_time(f"Saved compatibility file to {classification_dir}/politics_topics.json")
+    
     end_timer("save_results", t_start)
     
     # Summary
     log_time("=" * 50)
     log_time("SUMMARY:")
     log_time(f"  Total topics: {len(topics_data)}")
-    log_time(f"  Politics: {len(politics_topics)} ({100*len(politics_topics)/len(topics_data):.1f}%)")
-    log_time(f"  Non-politics: {len(topics_data) - len(politics_topics)} ({100*(len(topics_data)-len(politics_topics))/len(topics_data):.1f}%)")
+    log_time(f"  Gaming: {len(gaming_topics)} ({100*len(gaming_topics)/len(topics_data):.1f}%)")
+    log_time(f"  Non-gaming: {len(topics_data) - len(gaming_topics)} ({100*(len(topics_data)-len(gaming_topics))/len(topics_data):.1f}%)")
     log_time(f"  Errors: {errors}")
-    log_time(f"  Politics topic IDs: {politics_topics}")
+    log_time(f"  Gaming topic IDs: {gaming_topics}")
     
     # Final timing
     total_time = time.perf_counter() - START_TIME
@@ -205,7 +237,7 @@ Answer with ONLY 'yes' or 'no'."""
     log_time(f"COMPLETED in {total_time:.2f}s")
     
     with open(f"{classification_dir}/step4_completed.txt", 'w') as f:
-        f.write(f"Step 4: Topic Classification (ChatGPT)\n")
+        f.write(f"Step 4: Topic Classification (Gaming - ChatGPT)\n")
         f.write(f"Level: {level}\n")
         f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
@@ -215,8 +247,8 @@ Answer with ONLY 'yes' or 'no'."""
             f.write(f"  {step_name}: {step_time:.2f}s\n")
         f.write(f"\nResults:\n")
         f.write(f"  Total topics: {len(topics_data)}\n")
-        f.write(f"  Political topics: {len(politics_topics)}\n")
-        f.write(f"  Non-political topics: {len(topics_data) - len(politics_topics)}\n")
+        f.write(f"  Gaming topics: {len(gaming_topics)}\n")
+        f.write(f"  Non-gaming topics: {len(topics_data) - len(gaming_topics)}\n")
         f.write(f"  Errors: {errors}\n")
         f.write(f"  Model: {MODEL_NAME}\n")
 

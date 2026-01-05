@@ -2,6 +2,7 @@
 """
 STEP 3: Extract topics and compute document-topic matrix.
 Usage: python step3_extract_topics.py --level 0
+       python step3_extract_topics.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
 """
 
 import os
@@ -34,21 +35,26 @@ def end_timer(name: str, start: float) -> float:
 # ======================== CONFIG ========================
 NUM_TOP_WORDS = 60
 NUM_SAMPLE_DOCS = 5
+MAX_FALLBACK_RATIO = 0.5  # Alert if more than 50% of sample docs need fallback
 
 # ======================== MAIN ========================
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     args = parser.parse_args()
     
     level = args.level
+    base_dir = args.base_dir
     log_time(f"Extracting topics for level {level}")
+    log_time(f"  Base dir: {base_dir}")
     
     # Paths
-    base_dir = f"../../results/levels_automatic/level_{level}"
-    lda_dir = f"{base_dir}/lda"
-    preprocess_dir = f"{base_dir}/preprocessing"
-    topics_dir = f"{base_dir}/topics"
+    level_dir = f"{base_dir}/level_{level}"
+    lda_dir = f"{level_dir}/lda"
+    preprocess_dir = f"{level_dir}/preprocessing"
+    topics_dir = f"{level_dir}/topics"
     os.makedirs(topics_dir, exist_ok=True)
     
     # Load best_k
@@ -80,6 +86,35 @@ def main():
     end_timer("load_documents", t_start)
     log_time(f"Loaded {len(documents)} documents")
     
+    # Check text_llm quality BEFORE processing
+    t_start = start_timer("check_text_llm_quality")
+    if 'text_llm' in df.columns:
+        total_rows = len(df)
+        nan_count = df['text_llm'].isna().sum()
+        non_string_count = (~df['text_llm'].apply(lambda x: isinstance(x, str) if pd.notna(x) else False)).sum()
+        invalid_count = nan_count + (non_string_count - nan_count)
+        
+        fallback_ratio = invalid_count / total_rows if total_rows > 0 else 0
+        
+        log_time(f"text_llm quality check:")
+        log_time(f"  Total rows: {total_rows}")
+        log_time(f"  NaN values: {nan_count} ({100*nan_count/total_rows:.1f}%)")
+        log_time(f"  Invalid (need fallback): {invalid_count} ({100*fallback_ratio:.1f}%)")
+        
+        if fallback_ratio > MAX_FALLBACK_RATIO:
+            log_time(f"")
+            log_time(f"{'='*60}")
+            log_time(f"ALERT: Too many text_llm values need fallback!")
+            log_time(f"  Fallback ratio: {100*fallback_ratio:.1f}% > {100*MAX_FALLBACK_RATIO:.0f}% threshold")
+            log_time(f"  This indicates a data quality issue in preprocessing.")
+            log_time(f"  Check step1_preprocess.py output.")
+            log_time(f"{'='*60}")
+            log_time(f"")
+            sys.exit(1)
+    else:
+        log_time(f"WARNING: text_llm column not found, will use text_lda for samples")
+    end_timer("check_text_llm_quality", t_start)
+    
     # Build corpus
     t_start = start_timer("build_corpus")
     log_time("Building corpus for Gensim...")
@@ -108,8 +143,16 @@ def main():
     t_start = start_timer("extract_keywords")
     log_time(f"Extracting top-{NUM_TOP_WORDS} words for {best_k} topics...")
     
-    topics_data = []
+    topics_data = {
+        "level": level,
+        "num_topics": best_k,
+        "topics": []
+    }
     topics_text = []
+    
+    # Track fallbacks during sample extraction
+    total_samples = 0
+    fallback_samples = 0
     
     for topic_id in range(best_k):
         top_words = lda_model.show_topic(topic_id, topn=NUM_TOP_WORDS)
@@ -121,18 +164,35 @@ def main():
         
         sample_docs = []
         for idx in top_doc_indices:
+            total_samples += 1
             if idx < len(df):
-                sample_docs.append(df.iloc[idx]['text_llm'][:500] if 'text_llm' in df.columns else documents[idx][:500])
+                # Handle NaN values safely
+                if 'text_llm' in df.columns:
+                    text_val = df.iloc[idx]['text_llm']
+                    if pd.notna(text_val) and isinstance(text_val, str):
+                        sample_docs.append(text_val[:500])
+                    else:
+                        # Fallback to text_lda
+                        fallback_samples += 1
+                        sample_docs.append(documents[idx][:500])
+                else:
+                    sample_docs.append(documents[idx][:500])
         
-        topics_data.append({
+        topics_data["topics"].append({
             "topic_id": topic_id,
-            "keywords": keywords,
+            "keywords": keywords[:10],
+            "all_keywords": keywords,
             "sample_documents": sample_docs
         })
         
         topics_text.append(f"Topic {topic_id}: {', '.join(keywords[:20])}")
     
     end_timer("extract_keywords", t_start)
+    
+    # Report fallback stats
+    if total_samples > 0:
+        sample_fallback_ratio = fallback_samples / total_samples
+        log_time(f"Sample docs fallback: {fallback_samples}/{total_samples} ({100*sample_fallback_ratio:.1f}%)")
     
     # Save topics
     t_start = start_timer("save_topics")
@@ -153,6 +213,7 @@ def main():
     with open(f"{topics_dir}/step3_completed.txt", 'w') as f:
         f.write(f"Step 3: Topic Extraction\n")
         f.write(f"Level: {level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")
         f.write(f"Timing breakdown:\n")
@@ -162,6 +223,7 @@ def main():
         f.write(f"  Topics: {best_k}\n")
         f.write(f"  Documents: {len(documents)}\n")
         f.write(f"  Matrix shape: {doc_topic_matrix.shape}\n")
+        f.write(f"  Sample docs fallback: {fallback_samples}/{total_samples}\n")
 
 if __name__ == "__main__":
     main()

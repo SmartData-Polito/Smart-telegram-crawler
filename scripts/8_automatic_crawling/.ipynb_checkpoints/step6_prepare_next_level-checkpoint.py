@@ -2,6 +2,7 @@
 """
 STEP 6: Prepare nodes for next level (children of political channels).
 Usage: python step6_prepare_next_level.py --level 0
+       python step6_prepare_next_level.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
        python step6_prepare_next_level.py --level 0 --threshold 0.5
 """
 
@@ -30,16 +31,20 @@ def end_timer(name: str, start: float) -> float:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     parser.add_argument("--threshold", type=float, default=None,
                         help="Override threshold (if different from step5)")
     args = parser.parse_args()
     
     current_level = int(args.level)
     next_level = current_level + 1
+    base_dir = args.base_dir
+    
     log_time(f"Preparing nodes for level {next_level} from level {current_level}")
+    log_time(f"  Base dir: {base_dir}")
     
     # Paths
-    base_dir = f"../../results/levels_automatic"
     current_level_dir = f"{base_dir}/level_{current_level}"
     next_level_dir = f"{base_dir}/level_{next_level}"
     
@@ -66,7 +71,7 @@ def main():
     
     log_time(f"Using threshold: {threshold*100:.0f}%")
     
-    # If threshold is different, we need to recompute political channels from stats
+    # If threshold is different, recompute political channels from stats
     if args.threshold is not None and args.threshold != original_threshold:
         log_time(f"Threshold changed from {original_threshold*100:.0f}% to {threshold*100:.0f}%")
         log_time("Recomputing political channels from channel stats...")
@@ -175,6 +180,7 @@ def main():
     with open(f"{next_level_dir}/step6_completed.txt", "w") as f:
         f.write(f"Step 6: Prepare Next Level\n")
         f.write(f"Level: {current_level} -> {next_level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
         f.write(f"Threshold used: {threshold}\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")

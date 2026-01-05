@@ -2,6 +2,7 @@
 """
 STEP 4: Classify topics as political or non-political using ChatGPT.
 Usage: python step4_classify_topics.py --level 0
+       python step4_classify_topics.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
 """
 
 import os
@@ -31,21 +32,25 @@ def end_timer(name: str, start: float) -> float:
 
 # ======================== CONFIG ========================
 NUM_TOP_KEYWORDS = 40
-MODEL_NAME = "gpt-4o-mini"
+MODEL_NAME = "gpt-5-nano"  
 
 # ======================== MAIN ========================
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     args = parser.parse_args()
     
     level = args.level
+    base_dir = args.base_dir
     log_time(f"Classifying topics for level {level}")
+    log_time(f"  Base dir: {base_dir}")
     
     # Paths
-    base_dir = f"../../results/levels_automatic/level_{level}"
-    topics_dir = f"{base_dir}/topics"
-    classification_dir = f"{base_dir}/classification"
+    level_dir = f"{base_dir}/level_{level}"
+    topics_dir = f"{level_dir}/topics"
+    classification_dir = f"{level_dir}/classification"
     os.makedirs(classification_dir, exist_ok=True)
     
     # Load API key
@@ -82,7 +87,7 @@ def main():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": "Say 'ok'"}],
-            max_tokens=10
+            max_completion_tokens=600
         )
         log_time(f"API test successful with model {MODEL_NAME}")
     except Exception as e:
@@ -98,7 +103,15 @@ def main():
         sys.exit(1)
     
     with open(topics_file, 'r') as f:
-        topics_data = json.load(f)
+        topics_json = json.load(f)
+    
+    # Handle different formats
+    if isinstance(topics_json, dict) and "topics" in topics_json:
+        topics_data = topics_json["topics"]
+    elif isinstance(topics_json, list):
+        topics_data = topics_json
+    else:
+        topics_data = []
     
     log_time(f"Loaded {len(topics_data)} topics")
     end_timer("load_topics", t_start)
@@ -111,7 +124,7 @@ def main():
     
     for topic in topics_data:
         topic_id = topic['topic_id']
-        keywords = topic['keywords'][:NUM_TOP_KEYWORDS]
+        keywords = topic.get('all_keywords', topic.get('keywords', []))[:NUM_TOP_KEYWORDS]
         
         log_time(f"Classifying topic {topic_id}/{len(topics_data)-1}...")
         
@@ -127,19 +140,17 @@ Answer with ONLY 'yes' or 'no'."""
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=10,
-                temperature=0
+                max_completion_tokens=600
             )
             
             answer = response.choices[0].message.content.strip().lower()
-            is_political = answer.startswith('yes') or answer == ''
+            is_political = answer.startswith('yes') or answer == 'y'
             
-            log_time(f"    [DEBUG] Raw response: '{answer}'")
-            log_time(f"  -> {'POLITICS' if is_political else 'non-politics'}")
+            log_time(f"  -> {'POLITICS' if is_political else 'non-politics'} (raw: '{answer}')")
             
             results.append({
                 "topic_id": topic_id,
-                "keywords": keywords,
+                "keywords": keywords[:10],
                 "is_political": is_political,
                 "raw_response": answer
             })
@@ -154,7 +165,7 @@ Answer with ONLY 'yes' or 'no'."""
             errors += 1
             results.append({
                 "topic_id": topic_id,
-                "keywords": keywords,
+                "keywords": keywords[:10],
                 "is_political": False,
                 "error": str(e)
             })
@@ -196,6 +207,7 @@ Answer with ONLY 'yes' or 'no'."""
     with open(f"{classification_dir}/step4_completed.txt", 'w') as f:
         f.write(f"Step 4: Topic Classification (ChatGPT)\n")
         f.write(f"Level: {level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")
         f.write(f"Timing breakdown:\n")

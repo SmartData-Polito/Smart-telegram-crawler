@@ -2,6 +2,7 @@
 """
 STEP 2: Train LDA model with Optuna optimization.
 Usage: python step2_lda_train.py --level 0
+       python step2_lda_train.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
 """
 
 import os
@@ -40,7 +41,9 @@ def end_timer(name: str, start: float) -> float:
 # ======================== CONFIG ========================
 SEED = 42
 OPTUNA_TRIALS = 6
-OPTUNA_FRACTION = 0.10
+OPTUNA_FRACTION = 0.10      # 10% base
+OPTUNA_MAX_DOCS = 50000     # Tetto massimo per tuning
+OPTUNA_MIN_DOCS = 5000      # Minimo per tuning
 COHERENCE_SUBSET = 5000
 N_JOBS = max(4, os.cpu_count() - 1)
 
@@ -50,15 +53,19 @@ np.random.seed(SEED)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--level", type=str, required=True)
+    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
+                        help="Base directory for results")
     args = parser.parse_args()
     
     level = args.level
+    base_dir = args.base_dir
     log_time(f"Starting LDA training for level {level}")
+    log_time(f"  Base dir: {base_dir}")
     
     # Paths
-    base_dir = f"../../results/levels_automatic/level_{level}"
-    preprocess_dir = f"{base_dir}/preprocessing"
-    lda_dir = f"{base_dir}/lda"
+    level_dir = f"{base_dir}/level_{level}"
+    preprocess_dir = f"{level_dir}/preprocessing"
+    lda_dir = f"{level_dir}/lda"
     
     input_file = f"{preprocess_dir}/messages_english_clean.tsv.gz"
     
@@ -87,12 +94,25 @@ def main():
     
     documents = df['text_lda'].astype(str).tolist()
     end_timer("load_data", t_start)
-    log_time(f"Loaded {len(documents)} documents")
+    log_time(f"Loaded {len(documents):,} documents")
     
-    # K range
+    # K range - FIXED LOGIC
     n_docs = len(documents)
-    k_min = max(10, int(np.sqrt(n_docs / 2)))
-    k_max = min(200, int(np.sqrt(n_docs) * 1.5))
+    
+    # Calculate bounds
+    k_min_calc = max(10, int(np.sqrt(n_docs / 10)))  # More conservative lower bound
+    k_max_calc = max(50, min(200, int(np.sqrt(n_docs) * 1.5)))  # Ensure at least 50
+    
+    # Ensure k_min <= k_max
+    k_min = min(k_min_calc, k_max_calc)
+    k_max = max(k_min_calc, k_max_calc)
+    
+    # Final safety check
+    if k_min > k_max:
+        k_min, k_max = k_max, k_min
+    if k_min == k_max:
+        k_max = k_min + 20
+    
     log_time(f"K range: [{k_min}, {k_max}]")
     
     # LDA params
@@ -115,7 +135,7 @@ def main():
     corpus = [dictionary.doc2bow(doc) for doc in tokenized_docs]
     end_timer("build_corpus", t_start)
     
-    log_time(f"Dictionary done | Vocab size: {len(dictionary)}")
+    log_time(f"Dictionary done | Vocab size: {len(dictionary):,}")
     
     # Save dictionary and corpus
     joblib.dump(dictionary, f"{lda_dir}/vectorizer.joblib")
@@ -125,12 +145,18 @@ def main():
     t_start = start_timer("optuna_optimization")
     log_time("Starting Optuna optimization...")
     
-    n_tune = max(1000, int(len(documents) * OPTUNA_FRACTION))
+    # Adaptive tuning size: 10% with min/max bounds
+    n_tune_raw = int(len(documents) * OPTUNA_FRACTION)
+    n_tune = min(OPTUNA_MAX_DOCS, max(OPTUNA_MIN_DOCS, n_tune_raw))
+    
     tune_indices = np.random.choice(len(documents), min(n_tune, len(documents)), replace=False)
     tune_corpus = [corpus[i] for i in tune_indices]
     tune_docs = [tokenized_docs[i] for i in tune_indices]
     
-    log_time(f"Tuning on {len(tune_corpus)}/{len(documents)} documents ({100*len(tune_corpus)/len(documents):.0f}%)")
+    effective_pct = 100 * len(tune_corpus) / len(documents)
+    log_time(f"Tuning on {len(tune_corpus):,}/{len(documents):,} documents ({effective_pct:.1f}%)")
+    if n_tune_raw > OPTUNA_MAX_DOCS:
+        log_time(f"  (capped from {n_tune_raw:,} to {OPTUNA_MAX_DOCS:,})")
     
     coherence_docs = tune_docs[:COHERENCE_SUBSET] if len(tune_docs) > COHERENCE_SUBSET else tune_docs
     
@@ -206,7 +232,10 @@ def main():
         "best_eta": best_eta,
         "best_coherence": best_coherence,
         "n_documents": len(documents),
-        "vocab_size": len(dictionary)
+        "n_tune_documents": len(tune_corpus),
+        "tune_percentage": effective_pct,
+        "vocab_size": len(dictionary),
+        "k_range": [k_min, k_max]
     }
     
     with open(f"{lda_dir}/best_k.json", 'w') as f:
@@ -220,14 +249,17 @@ def main():
     with open(f"{lda_dir}/step2_completed.txt", 'w') as f:
         f.write(f"Step 2: LDA Training\n")
         f.write(f"Level: {level}\n")
+        f.write(f"Base dir: {base_dir}\n")
         f.write(f"Status: COMPLETED\n")
         f.write(f"Total time: {total_time:.2f}s\n\n")
         f.write(f"Timing breakdown:\n")
         for step_name, step_time in STEP_TIMES.items():
             f.write(f"  {step_name}: {step_time:.2f}s\n")
         f.write(f"\nResults:\n")
-        f.write(f"  Documents: {len(documents)}\n")
-        f.write(f"  Vocab size: {len(dictionary)}\n")
+        f.write(f"  Documents: {len(documents):,}\n")
+        f.write(f"  Tuning docs: {len(tune_corpus):,} ({effective_pct:.1f}%)\n")
+        f.write(f"  Vocab size: {len(dictionary):,}\n")
+        f.write(f"  K range: [{k_min}, {k_max}]\n")
         f.write(f"  Best K: {best_k}\n")
         f.write(f"  Best coherence: {best_coherence:.4f}\n")
 
