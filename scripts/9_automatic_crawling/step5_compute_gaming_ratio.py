@@ -30,6 +30,7 @@ def compute_gaming_ratio(level, base_dir, threshold):
     
     df_messages = pd.read_csv(messages_file, sep='\t', compression='gzip')
     print(f"Total messages: {len(df_messages)}")
+    print(f"Columns: {list(df_messages.columns)}")
     
     # Load doc-topic matrix
     matrix_file = f"{level_dir}/lda/doc_topic_matrix_level_{level}.npy"
@@ -61,9 +62,9 @@ def compute_gaming_ratio(level, base_dir, threshold):
     
     df_messages['is_gaming'] = is_gaming
     
-    # Aggregate by channel
+    # Aggregate by channel - use 'text_lda' instead of 'message'
     channel_stats = df_messages.groupby('channel_id').agg(
-        total_messages=('message', 'count'),
+        total_messages=('text_lda', 'count'),
         gaming_messages=('is_gaming', 'sum')
     ).reset_index()
     

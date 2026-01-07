@@ -2,6 +2,7 @@
 """
 Analyze results from TGDataset gaming detection pipeline.
 Computes metrics, compares with ground truth, generates reports.
+NOTA: Esclude canali senza dati (no messaggi inglesi) dal calcolo delle metriche.
 """
 
 import os
@@ -76,7 +77,7 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None):
         results['forwarded_messages'] = tracking.get('total_forwarded_messages', 0)
     
     # Load LDA info
-    lda_info_file = f"{level_dir}/lda/lda_info.json"
+    lda_info_file = f"{level_dir}/lda/best_k.json"
     if os.path.exists(lda_info_file):
         with open(lda_info_file, 'r') as f:
             lda_info = json.load(f)
@@ -98,6 +99,15 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None):
     channel_file = f"{level_dir}/channel_analysis/gaming_channels.json"
     if not os.path.exists(channel_file):
         channel_file = f"{level_dir}/channel_analysis/political_channels.json"
+    
+    # ============================================================
+    # NUOVO: Carica channel_stats per sapere quali canali hanno dati
+    # ============================================================
+    channel_stats_file = f"{level_dir}/channel_analysis/channel_stats.csv"
+    channels_with_data = set()
+    if os.path.exists(channel_stats_file):
+        df_stats = pd.read_csv(channel_stats_file)
+        channels_with_data = set(df_stats['channel_id'].tolist())
     
     if os.path.exists(channel_file):
         with open(channel_file, 'r') as f:
@@ -121,21 +131,32 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None):
         results['next_level_candidates'] = expansion.get('unique_forwarded_from', 0)
         results['next_level_new'] = expansion.get('new_channels', 0)
     
-    # Ground truth comparison
-    if ground_truth_gaming and gaming_channel_ids:
-        # Only compare channels we analyzed
-        analyzed_ids = node_ids
+    # ============================================================
+    # MODIFICATO: Ground truth comparison (esclude canali senza dati)
+    # ============================================================
+    if ground_truth_gaming is not None:
+        # NUOVO: Usa solo canali CON DATI, non tutti i nodi
+        if channels_with_data:
+            analyzed_ids = channels_with_data  # Solo canali con dati!
+        else:
+            analyzed_ids = node_ids  # Fallback
         
-        # True gaming in our analyzed set
+        # Canali senza dati (per report)
+        channels_no_data = node_ids - channels_with_data
+        
+        # True gaming in our analyzed set (solo quelli con dati)
         true_gaming_in_analyzed = analyzed_ids & ground_truth_gaming
+        
+        # True gaming senza dati (per report)
+        true_gaming_no_data = (node_ids & ground_truth_gaming) - analyzed_ids
         
         # Our predictions
         predicted_gaming = gaming_channel_ids
         
-        # Metrics
+        # Metrics (calcolate SOLO su canali con dati)
         true_positives = len(predicted_gaming & ground_truth_gaming)
         false_positives = len(predicted_gaming - ground_truth_gaming)
-        false_negatives = len((analyzed_ids & ground_truth_gaming) - predicted_gaming)
+        false_negatives = len(true_gaming_in_analyzed - predicted_gaming)
         
         precision = true_positives / len(predicted_gaming) if predicted_gaming else 0
         recall = true_positives / len(true_gaming_in_analyzed) if true_gaming_in_analyzed else 0
@@ -143,6 +164,7 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None):
         
         results['ground_truth'] = {
             'true_gaming_in_level': len(true_gaming_in_analyzed),
+            'true_gaming_no_data': len(true_gaming_no_data),
             'predicted_gaming': len(predicted_gaming),
             'true_positives': true_positives,
             'false_positives': false_positives,
@@ -150,7 +172,11 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None):
             'precision': precision,
             'recall': recall,
             'f1': f1,
+            'channels_no_data': len(channels_no_data),
         }
+        
+        # Salva anche i canali con dati per il calcolo globale
+        results['channels_with_data'] = channels_with_data
     
     return results
 
@@ -227,19 +253,20 @@ def analyze_experiment(experiment_name, threshold):
         gaming_topic_pct = r.get('gaming_topics', 0) / r.get('num_topics', 1) * 100 if r.get('num_topics') else 0
         print(f"{r['level']:<6} {r.get('num_topics', 0):>10} {r.get('gaming_topics', 0):>14} {gaming_topic_pct:>9.1f}% {r.get('coherence', 0):>10.4f}")
     
-    # Ground truth comparison
+    # Ground truth comparison (MODIFICATO)
     if ground_truth_gaming:
         print(f"\n{'='*70}")
-        print(f" GROUND TRUTH COMPARISON")
+        print(f" GROUND TRUTH COMPARISON (solo canali con dati)")
         print(f"{'='*70}")
         
-        print(f"\n{'Level':<6} {'True Gaming':>12} {'Predicted':>12} {'TP':>8} {'FP':>8} {'FN':>8} {'Prec':>8} {'Recall':>8} {'F1':>8}")
-        print("-"*90)
+        print(f"\n{'Level':<6} {'GT Gaming':>10} {'(No Data)':>10} {'Predicted':>10} {'TP':>6} {'FP':>6} {'FN':>6} {'Prec':>8} {'Recall':>8} {'F1':>8}")
+        print("-"*100)
         
         for r in all_results:
             gt = r.get('ground_truth', {})
             if gt:
-                print(f"{r['level']:<6} {gt.get('true_gaming_in_level', 0):>12} {gt.get('predicted_gaming', 0):>12} {gt.get('true_positives', 0):>8} {gt.get('false_positives', 0):>8} {gt.get('false_negatives', 0):>8} {gt.get('precision', 0):>7.1%} {gt.get('recall', 0):>7.1%} {gt.get('f1', 0):>7.1%}")
+                no_data = gt.get('true_gaming_no_data', 0)
+                print(f"{r['level']:<6} {gt.get('true_gaming_in_level', 0):>10} {no_data:>10} {gt.get('predicted_gaming', 0):>10} {gt.get('true_positives', 0):>6} {gt.get('false_positives', 0):>6} {gt.get('false_negatives', 0):>6} {gt.get('precision', 0):>7.1%} {gt.get('recall', 0):>7.1%} {gt.get('f1', 0):>7.1%}")
     
     # Global metrics
     print(f"\n{'='*70}")
@@ -271,15 +298,37 @@ def analyze_experiment(experiment_name, threshold):
     print(f"\n  Unique gaming channels:    {len(all_gaming_ids)}")
     
     if ground_truth_gaming:
-        # Global ground truth metrics
-        all_analyzed_ids = set()
+        # ============================================================
+        # MODIFICATO: Global ground truth metrics (esclude no data)
+        # ============================================================
+        
+        # Raccogli tutti i canali CON DATI da tutti i livelli
+        all_channels_with_data = set()
+        for r in all_results:
+            all_channels_with_data.update(r.get('channels_with_data', set()))
+        
+        # Fallback se channels_with_data non è disponibile
+        if not all_channels_with_data:
+            all_analyzed_ids = set()
+            for r in all_results:
+                nodes_file = f"{base_dir}/level_{r['level']}/nodes_level_{r['level']}.csv.gz"
+                if os.path.exists(nodes_file):
+                    df = pd.read_csv(nodes_file, compression='gzip')
+                    all_analyzed_ids.update(df['channel_id'].tolist())
+            all_channels_with_data = all_analyzed_ids
+        
+        # True gaming solo tra canali con dati
+        true_gaming_in_all = all_channels_with_data & ground_truth_gaming
+        
+        # Conta canali gaming senza dati (per report)
+        all_node_ids = set()
         for r in all_results:
             nodes_file = f"{base_dir}/level_{r['level']}/nodes_level_{r['level']}.csv.gz"
             if os.path.exists(nodes_file):
                 df = pd.read_csv(nodes_file, compression='gzip')
-                all_analyzed_ids.update(df['channel_id'].tolist())
+                all_node_ids.update(df['channel_id'].tolist())
         
-        true_gaming_in_all = all_analyzed_ids & ground_truth_gaming
+        true_gaming_no_data = (all_node_ids & ground_truth_gaming) - all_channels_with_data
         
         global_tp = len(all_gaming_ids & ground_truth_gaming)
         global_fp = len(all_gaming_ids - ground_truth_gaming)
@@ -289,8 +338,9 @@ def analyze_experiment(experiment_name, threshold):
         global_recall = global_tp / len(true_gaming_in_all) if true_gaming_in_all else 0
         global_f1 = 2 * global_precision * global_recall / (global_precision + global_recall) if (global_precision + global_recall) > 0 else 0
         
-        print(f"\n  --- Global Ground Truth ---")
+        print(f"\n  --- Global Ground Truth (solo canali con dati) ---")
         print(f"  True gaming in analyzed:   {len(true_gaming_in_all)}")
+        print(f"  True gaming no data:       {len(true_gaming_no_data)} (esclusi)")
         print(f"  Predicted gaming:          {len(all_gaming_ids)}")
         print(f"  True Positives:            {global_tp}")
         print(f"  False Positives:           {global_fp}")
@@ -319,6 +369,7 @@ def analyze_experiment(experiment_name, threshold):
     if ground_truth_gaming:
         output['global']['ground_truth'] = {
             'true_gaming_in_analyzed': len(true_gaming_in_all),
+            'true_gaming_no_data': len(true_gaming_no_data),
             'precision': global_precision,
             'recall': global_recall,
             'f1': global_f1,
@@ -328,6 +379,8 @@ def analyze_experiment(experiment_name, threshold):
     for r in output['levels']:
         if 'gaming_channel_ids' in r:
             r['gaming_channel_ids'] = list(r['gaming_channel_ids'])
+        if 'channels_with_data' in r:
+            r['channels_with_data'] = list(r['channels_with_data'])
     
     output_file = f"{base_dir}/experiment_analysis.json"
     with open(output_file, 'w') as f:

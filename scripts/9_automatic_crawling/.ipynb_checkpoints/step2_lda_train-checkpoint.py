@@ -184,7 +184,13 @@ def main():
             coherence='c_npmi'
         )
         
-        return cm.get_coherence()
+        coherence = cm.get_coherence()
+        
+        # Fix per valori infiniti o NaN
+        if not np.isfinite(coherence):
+            coherence = -1.0  # Valore basso di default
+        
+        return coherence
     
     sampler = optuna.samplers.TPESampler(seed=SEED, multivariate=True)
     study = optuna.create_study(direction='maximize', sampler=sampler)
