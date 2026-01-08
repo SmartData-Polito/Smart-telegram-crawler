@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-STEP 2: Train LDA model with Optuna optimization.
-Usage: python step2_lda_train.py --level 0
-       python step2_lda_train.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
+step2_lda_train.py
+Train LDA model with Optuna hyperparameter tuning.
+CORRETTO: Calcola coherence sui dati completi, non solo sul sample di tuning.
 """
 
 import os
 import sys
+import json
 import time
 import argparse
-import json
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -18,256 +18,268 @@ import pandas as pd
 import joblib
 import optuna
 from gensim.corpora import Dictionary
-from gensim.models import LdaModel, LdaMulticore
-from gensim.models.coherencemodel import CoherenceModel
+from gensim.models import LdaMulticore, CoherenceModel
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-# ======================== TIMING ========================
-START_TIME = time.perf_counter()
-STEP_TIMES = {}
+# ======================== CONFIGURATION ========================
+MIN_K = 30
+MAX_K_RATIO = 0.0007  # K_max = n_docs * ratio
+TUNE_FRACTION = 0.10  # Use 10% for tuning (or max 50k)
+MAX_TUNE_DOCS = 50000
+N_TRIALS = 6
+PASSES = 4
+RANDOM_STATE = 42
 
-def log_time(msg: str) -> None:
-    print(f"[{time.perf_counter() - START_TIME:8.2f}s] {msg}")
+def log(msg):
+    elapsed = time.time() - START_TIME
+    print(f"[{elapsed:8.2f}s] {msg}")
 
-def start_timer(name: str) -> float:
-    return time.perf_counter()
-
-def end_timer(name: str, start: float) -> float:
-    elapsed = time.perf_counter() - start
-    STEP_TIMES[name] = elapsed
-    return elapsed
-
-# ======================== CONFIG ========================
-SEED = 42
-OPTUNA_TRIALS = 6
-OPTUNA_FRACTION = 0.10      # 10% base
-OPTUNA_MAX_DOCS = 50000     # Tetto massimo per tuning
-OPTUNA_MIN_DOCS = 5000      # Minimo per tuning
-COHERENCE_SUBSET = 5000
-N_JOBS = max(4, os.cpu_count() - 1)
-
-np.random.seed(SEED)
-
-# ======================== MAIN ========================
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--level", type=str, required=True)
-    parser.add_argument("--base-dir", type=str, default="../../results/levels_automatic",
-                        help="Base directory for results")
-    args = parser.parse_args()
-    
-    level = args.level
-    base_dir = args.base_dir
-    log_time(f"Starting LDA training for level {level}")
-    log_time(f"  Base dir: {base_dir}")
-    
-    # Paths
-    level_dir = f"{base_dir}/level_{level}"
-    preprocess_dir = f"{level_dir}/preprocessing"
-    lda_dir = f"{level_dir}/lda"
-    
-    input_file = f"{preprocess_dir}/messages_english_clean.tsv.gz"
-    
-    # Clean previous outputs
+def clean_previous_outputs(base_dir, level):
+    """Remove previous LDA outputs."""
+    lda_dir = f"{base_dir}/level_{level}/lda"
     if os.path.exists(lda_dir):
-        import shutil
-        shutil.rmtree(lda_dir)
-    os.makedirs(lda_dir, exist_ok=True)
-    os.makedirs(f"{lda_dir}/models", exist_ok=True)
-    
-    log_time("Cleaned previous outputs")
-    
-    # Load data
-    t_start = start_timer("load_data")
-    log_time(f"Loading data from {input_file}")
-    
-    if not os.path.exists(input_file):
-        log_time(f"ERROR: Input file not found: {input_file}")
-        sys.exit(1)
-    
-    df = pd.read_csv(input_file, sep='\t', compression='gzip')
-    
-    if len(df) == 0:
-        log_time("ERROR: No documents to process")
-        sys.exit(1)
-    
-    documents = df['text_lda'].astype(str).tolist()
-    end_timer("load_data", t_start)
-    log_time(f"Loaded {len(documents):,} documents")
-    
-    # K range - FIXED LOGIC
-    n_docs = len(documents)
-    
-    # Calculate bounds
-    k_min_calc = max(10, int(np.sqrt(n_docs / 10)))  # More conservative lower bound
-    k_max_calc = max(50, min(200, int(np.sqrt(n_docs) * 1.5)))  # Ensure at least 50
-    
-    # Ensure k_min <= k_max
-    k_min = min(k_min_calc, k_max_calc)
-    k_max = max(k_min_calc, k_max_calc)
-    
-    # Final safety check
-    if k_min > k_max:
-        k_min, k_max = k_max, k_min
-    if k_min == k_max:
-        k_max = k_min + 20
-    
-    log_time(f"K range: [{k_min}, {k_max}]")
-    
-    # LDA params
-    passes = 4
-    chunksize = max(100, n_docs // 50)
-    log_time(f"LDA: passes={passes}, chunksize={chunksize}")
-    log_time(f"Using {N_JOBS} workers")
-    
-    # Build dictionary
-    t_start = start_timer("build_dictionary")
-    log_time("Building dictionary...")
-    tokenized_docs = [doc.split() for doc in documents]
-    dictionary = Dictionary(tokenized_docs)
-    dictionary.filter_extremes(no_below=5, no_above=0.5)
-    end_timer("build_dictionary", t_start)
-    
-    # Build corpus
-    t_start = start_timer("build_corpus")
-    log_time("Building corpus...")
-    corpus = [dictionary.doc2bow(doc) for doc in tokenized_docs]
-    end_timer("build_corpus", t_start)
-    
-    log_time(f"Dictionary done | Vocab size: {len(dictionary):,}")
-    
-    # Save dictionary and corpus
-    joblib.dump(dictionary, f"{lda_dir}/vectorizer.joblib")
-    joblib.dump(corpus, f"{lda_dir}/corpus.joblib")
-    
-    # Optuna optimization
-    t_start = start_timer("optuna_optimization")
-    log_time("Starting Optuna optimization...")
-    
-    # Adaptive tuning size: 10% with min/max bounds
-    n_tune_raw = int(len(documents) * OPTUNA_FRACTION)
-    n_tune = min(OPTUNA_MAX_DOCS, max(OPTUNA_MIN_DOCS, n_tune_raw))
-    
-    tune_indices = np.random.choice(len(documents), min(n_tune, len(documents)), replace=False)
-    tune_corpus = [corpus[i] for i in tune_indices]
-    tune_docs = [tokenized_docs[i] for i in tune_indices]
-    
-    effective_pct = 100 * len(tune_corpus) / len(documents)
-    log_time(f"Tuning on {len(tune_corpus):,}/{len(documents):,} documents ({effective_pct:.1f}%)")
-    if n_tune_raw > OPTUNA_MAX_DOCS:
-        log_time(f"  (capped from {n_tune_raw:,} to {OPTUNA_MAX_DOCS:,})")
-    
-    coherence_docs = tune_docs[:COHERENCE_SUBSET] if len(tune_docs) > COHERENCE_SUBSET else tune_docs
-    
-    def objective(trial):
-        k = trial.suggest_int('num_topics', k_min, k_max)
-        alpha = trial.suggest_categorical('alpha', ['symmetric', 'asymmetric'])
-        eta = trial.suggest_categorical('eta', ['symmetric', 'auto'])
-        
-        model = LdaModel(
-            corpus=tune_corpus,
-            id2word=dictionary,
-            num_topics=k,
-            passes=2,
-            chunksize=chunksize,
-            alpha=alpha,
-            eta=eta,
-            random_state=SEED,
-            per_word_topics=False
-        )
-        
-        cm = CoherenceModel(
+        for item in os.listdir(lda_dir):
+            if item not in ['models']:
+                path = f"{lda_dir}/{item}"
+                if os.path.isfile(path):
+                    os.remove(path)
+        models_dir = f"{lda_dir}/models"
+        if os.path.exists(models_dir):
+            for item in os.listdir(models_dir):
+                os.remove(f"{models_dir}/{item}")
+
+def compute_coherence_safe(model, texts, dictionary, per_topic=False):
+    """
+    Compute coherence safely, handling infinity/NaN.
+    Returns mean of valid topic coherences if overall is infinite.
+    """
+    try:
+        coherence_model = CoherenceModel(
             model=model,
-            texts=coherence_docs,
+            texts=texts,
             dictionary=dictionary,
             coherence='c_npmi'
         )
         
-        coherence = cm.get_coherence()
+        if per_topic:
+            return coherence_model.get_coherence_per_topic()
         
-        # Fix per valori infiniti o NaN
+        coherence = coherence_model.get_coherence()
+        
+        # Se infinito o NaN, calcola media dei topic validi
         if not np.isfinite(coherence):
-            coherence = -1.0  # Valore basso di default
+            per_topic_coherence = coherence_model.get_coherence_per_topic()
+            valid = [c for c in per_topic_coherence if np.isfinite(c)]
+            if valid:
+                coherence = np.mean(valid)
+            else:
+                coherence = -1.0
         
         return coherence
+    except Exception as e:
+        print(f"    [WARN] Coherence computation failed: {e}")
+        return -1.0
+
+def main():
+    global START_TIME
+    START_TIME = time.time()
     
-    sampler = optuna.samplers.TPESampler(seed=SEED, multivariate=True)
-    study = optuna.create_study(direction='maximize', sampler=sampler)
-    study.optimize(objective, n_trials=OPTUNA_TRIALS, show_progress_bar=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--level', type=int, required=True)
+    parser.add_argument('--base-dir', type=str, required=True)
+    args = parser.parse_args()
     
-    best_k = study.best_params['num_topics']
+    level = args.level
+    base_dir = args.base_dir
+    
+    log(f"Starting LDA training for level {level}")
+    log(f"  Base dir: {base_dir}")
+    
+    # Clean previous outputs
+    clean_previous_outputs(base_dir, level)
+    log("Cleaned previous outputs")
+    
+    # Create output directories
+    lda_dir = f"{base_dir}/level_{level}/lda"
+    models_dir = f"{lda_dir}/models"
+    os.makedirs(models_dir, exist_ok=True)
+    
+    # Load data
+    input_file = f"{base_dir}/level_{level}/preprocessing/messages_english_clean.tsv.gz"
+    log(f"Loading data from {input_file}")
+    
+    df = pd.read_csv(input_file, sep='\t', compression='gzip')
+    texts = [str(doc).split() for doc in df['text_lda'].fillna('')]
+    n_docs = len(texts)
+    
+    log(f"Loaded {n_docs:,} documents")
+    
+    # Determine K range
+    k_max = max(MIN_K + 10, int(n_docs * MAX_K_RATIO))
+    k_min = MIN_K
+    
+    # Adjust for small datasets
+    if n_docs < 10000:
+        k_max = min(k_max, n_docs // 100)
+        k_min = min(k_min, k_max - 10)
+        k_min = max(10, k_min)
+    
+    log(f"K range: [{k_min}, {k_max}]")
+    
+    # Tuning parameters
+    n_tune = min(int(n_docs * TUNE_FRACTION), MAX_TUNE_DOCS)
+    if n_docs < MAX_TUNE_DOCS:
+        n_tune = min(n_docs, int(n_docs * 0.55))  # Use more for small datasets
+    
+    chunksize = max(100, n_tune // PASSES // 2)
+    workers = min(os.cpu_count() - 1, 71)
+    
+    log(f"LDA: passes={PASSES}, chunksize={chunksize}")
+    log(f"Using {workers} workers")
+    
+    # Build dictionary
+    log("Building dictionary...")
+    dictionary = Dictionary(texts)
+    dictionary.filter_extremes(no_below=5, no_above=0.5, keep_n=100000)
+    
+    # Build corpus
+    log("Building corpus...")
+    corpus = [dictionary.doc2bow(text) for text in texts]
+    
+    log(f"Dictionary done | Vocab size: {len(dictionary):,}")
+    
+    # Save dictionary and corpus
+    dictionary.save(f"{models_dir}/dictionary.dict")
+    joblib.dump(corpus, f"{lda_dir}/corpus.joblib")
+    
+    # Tuning corpus (sample)
+    if n_docs > n_tune:
+        np.random.seed(RANDOM_STATE)
+        tune_indices = np.random.choice(n_docs, n_tune, replace=False)
+        tune_corpus = [corpus[i] for i in tune_indices]
+        tune_texts = [texts[i] for i in tune_indices]
+    else:
+        tune_corpus = corpus
+        tune_texts = texts
+        n_tune = n_docs
+    
+    tune_pct = 100 * n_tune / n_docs
+    
+    # Optuna optimization
+    log("Starting Optuna optimization...")
+    log(f"Tuning on {n_tune:,}/{n_docs:,} documents ({tune_pct:.1f}%)")
+    
+    def objective(trial):
+        k = trial.suggest_int('k', k_min, k_max)
+        alpha = trial.suggest_categorical('alpha', ['symmetric', 'asymmetric'])
+        eta = trial.suggest_categorical('eta', ['symmetric', 'auto'])
+        
+        model = LdaMulticore(
+            corpus=tune_corpus,
+            id2word=dictionary,
+            num_topics=k,
+            passes=PASSES,
+            chunksize=chunksize,
+            random_state=RANDOM_STATE,
+            workers=workers,
+            alpha=alpha,
+            eta=eta
+        )
+        
+        coherence = compute_coherence_safe(model, tune_texts, dictionary)
+        return coherence
+    
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
+    
+    best_k = study.best_params['k']
     best_alpha = study.best_params['alpha']
     best_eta = study.best_params['eta']
-    best_coherence = study.best_value
+    tuning_coherence = study.best_value
     
-    end_timer("optuna_optimization", t_start)
-    log_time(f"Optuna done | Best k={best_k}, coherence={best_coherence:.4f}")
+    log(f"Optuna done | Best k={best_k}, tuning coherence={tuning_coherence:.4f}")
     
-    # Train final model
-    t_start = start_timer("train_final_model")
-    log_time(f"Training final model with k={best_k} on full data...")
+    # Train final model on FULL data
+    log(f"Training final model with k={best_k} on full data...")
     
-    final_model = LdaMulticore(
+    best_model = LdaMulticore(
         corpus=corpus,
         id2word=dictionary,
         num_topics=best_k,
-        passes=passes,
-        chunksize=chunksize,
+        passes=PASSES,
+        chunksize=max(100, n_docs // PASSES // 2),
+        random_state=RANDOM_STATE,
+        workers=workers,
         alpha=best_alpha,
-        eta=best_eta,
-        random_state=SEED,
-        workers=N_JOBS - 1,
-        per_word_topics=False
+        eta=best_eta
     )
     
-    end_timer("train_final_model", t_start)
-    log_time("Training done")
+    log("Training done")
+    
+    # ============================================================
+    # NUOVO: Calcola coherence sui dati COMPLETI
+    # ============================================================
+    log("Computing final coherence on FULL data...")
+    
+    final_coherence = compute_coherence_safe(best_model, texts, dictionary)
+    
+    log(f"Final coherence (full data): {final_coherence:.4f}")
+    
+    # Calcola anche statistiche per topic
+    per_topic_coherence = compute_coherence_safe(best_model, texts, dictionary, per_topic=True)
+    
+    if isinstance(per_topic_coherence, list):
+        valid_coherences = [c for c in per_topic_coherence if np.isfinite(c)]
+        n_valid = len(valid_coherences)
+        n_infinite = sum(1 for c in per_topic_coherence if np.isinf(c))
+        n_nan = sum(1 for c in per_topic_coherence if np.isnan(c))
+        
+        coherence_stats = {
+            'total_topics': len(per_topic_coherence),
+            'valid_topics': n_valid,
+            'infinite_topics': n_infinite,
+            'nan_topics': n_nan,
+            'mean': float(np.mean(valid_coherences)) if valid_coherences else -1.0,
+            'median': float(np.median(valid_coherences)) if valid_coherences else -1.0,
+            'min': float(min(valid_coherences)) if valid_coherences else -1.0,
+            'max': float(max(valid_coherences)) if valid_coherences else -1.0,
+        }
+        
+        log(f"  Valid topics: {n_valid}/{len(per_topic_coherence)}")
+        log(f"  Mean coherence: {coherence_stats['mean']:.4f}")
+        log(f"  Median coherence: {coherence_stats['median']:.4f}")
+    else:
+        coherence_stats = None
     
     # Save model
-    t_start = start_timer("save_model")
-    model_path = f"{lda_dir}/models/lda_best.joblib"
-    joblib.dump(final_model, model_path)
-    end_timer("save_model", t_start)
-    log_time(f"Model saved to {model_path}")
+    model_path = f"{models_dir}/lda_best.joblib"
+    joblib.dump(best_model, model_path)
+    log(f"Model saved to {model_path}")
     
-    # Save best params
-    best_params = {
-        "best_k": best_k,
-        "best_alpha": best_alpha,
-        "best_eta": best_eta,
-        "best_coherence": best_coherence,
-        "n_documents": len(documents),
-        "n_tune_documents": len(tune_corpus),
-        "tune_percentage": effective_pct,
-        "vocab_size": len(dictionary),
-        "k_range": [k_min, k_max]
+    # Save info
+    info = {
+        'best_k': best_k,
+        'best_alpha': best_alpha,
+        'best_eta': best_eta,
+        'tuning_coherence': tuning_coherence,  # Coherence durante tuning (sample)
+        'best_coherence': final_coherence,      # Coherence finale (full data)
+        'coherence_stats': coherence_stats,     # Statistiche dettagliate
+        'n_documents': n_docs,
+        'n_tune_documents': n_tune,
+        'tune_percentage': tune_pct,
+        'vocab_size': len(dictionary),
+        'k_range': [k_min, k_max],
     }
     
     with open(f"{lda_dir}/best_k.json", 'w') as f:
-        json.dump(best_params, f, indent=2)
+        json.dump(info, f, indent=2)
     
-    # Final timing
-    total_time = time.perf_counter() - START_TIME
-    STEP_TIMES["total"] = total_time
-    log_time(f"COMPLETED in {total_time:.2f}s")
-    
+    # Mark as completed
     with open(f"{lda_dir}/step2_completed.txt", 'w') as f:
-        f.write(f"Step 2: LDA Training\n")
-        f.write(f"Level: {level}\n")
-        f.write(f"Base dir: {base_dir}\n")
-        f.write(f"Status: COMPLETED\n")
-        f.write(f"Total time: {total_time:.2f}s\n\n")
-        f.write(f"Timing breakdown:\n")
-        for step_name, step_time in STEP_TIMES.items():
-            f.write(f"  {step_name}: {step_time:.2f}s\n")
-        f.write(f"\nResults:\n")
-        f.write(f"  Documents: {len(documents):,}\n")
-        f.write(f"  Tuning docs: {len(tune_corpus):,} ({effective_pct:.1f}%)\n")
-        f.write(f"  Vocab size: {len(dictionary):,}\n")
-        f.write(f"  K range: [{k_min}, {k_max}]\n")
-        f.write(f"  Best K: {best_k}\n")
-        f.write(f"  Best coherence: {best_coherence:.4f}\n")
+        f.write(f"Completed at {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+    
+    log(f"COMPLETED in {time.time() - START_TIME:.2f}s")
 
 if __name__ == "__main__":
     main()
