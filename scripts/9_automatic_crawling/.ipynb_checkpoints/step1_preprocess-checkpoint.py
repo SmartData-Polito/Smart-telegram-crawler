@@ -2,6 +2,9 @@
 """
 Step 1: Preprocess messages from TGDataset JSON files.
 Extracts English messages and saves them for LDA.
+
+OTTIMIZZAZIONE: Se TGDataset_extracted/ esiste, legge da disco (10x più veloce).
+                Altrimenti fallback ai tar files.
 """
 
 import os
@@ -23,6 +26,7 @@ fasttext.FastText.eprint = lambda x: None
 # ======================== CONFIGURATION ========================
 FASTTEXT_MODEL_PATH = "../../material/lid.176.bin"
 TGDATASET_DIR = "../../material"
+EXTRACTED_DIR = "../../material/TGDataset_extracted"  # Cartella con file estratti
 MIN_MESSAGE_LENGTH = 15
 
 # ======================== HELPER FUNCTIONS ========================
@@ -72,8 +76,50 @@ def load_channel_mapping():
     with open(mapping_file, 'r') as f:
         return json.load(f)
 
-def load_channels_data(channel_ids, channel_mapping):
-    """Load data for multiple channels efficiently."""
+def check_extracted_available():
+    """Check if extracted files are available."""
+    if os.path.exists(EXTRACTED_DIR):
+        # Verifica che ci siano effettivamente file
+        public_db = f"{EXTRACTED_DIR}/public_db"
+        if os.path.exists(public_db):
+            folders = os.listdir(public_db)
+            if len(folders) > 0:
+                return True
+    return False
+
+def load_channels_data_from_extracted(channel_ids, channel_mapping):
+    """Load data from extracted files (FAST)."""
+    results = {}
+    
+    # Group by file
+    by_file = defaultdict(list)
+    for ch_id in channel_ids:
+        ch_id_str = str(ch_id)
+        if ch_id_str in channel_mapping:
+            info = channel_mapping[ch_id_str]
+            file_path = info['file']  # es: public_db/folder_0/file_28_xxx.json
+            by_file[file_path].append(ch_id_str)
+    
+    print(f"  Reading {len(by_file)} files from extracted data...")
+    
+    for file_path, ch_ids_in_file in tqdm(by_file.items(), desc="  Files"):
+        full_path = f"{EXTRACTED_DIR}/{file_path}"
+        
+        try:
+            if os.path.exists(full_path):
+                with open(full_path, 'r') as f:
+                    data = json.load(f)
+                
+                for ch_id in ch_ids_in_file:
+                    if ch_id in data:
+                        results[ch_id] = data[ch_id]
+        except Exception as e:
+            pass  # Skip problematic files
+    
+    return results
+
+def load_channels_data_from_tar(channel_ids, channel_mapping):
+    """Load data from tar files (SLOW - fallback)."""
     results = {}
     
     # Group by tar file
@@ -106,6 +152,17 @@ def load_channels_data(channel_ids, channel_mapping):
                     pass
     
     return results
+
+def load_channels_data(channel_ids, channel_mapping):
+    """Load data - uses extracted if available, otherwise tar."""
+    use_extracted = check_extracted_available()
+    
+    if use_extracted:
+        print("  [FAST MODE] Using extracted files")
+        return load_channels_data_from_extracted(channel_ids, channel_mapping)
+    else:
+        print("  [SLOW MODE] Using tar files (run extract_tgdataset.sh for 10x speedup)")
+        return load_channels_data_from_tar(channel_ids, channel_mapping)
 
 # ======================== MAIN PROCESSING ========================
 def process_level(level, base_dir, start_date=None, end_date=None):

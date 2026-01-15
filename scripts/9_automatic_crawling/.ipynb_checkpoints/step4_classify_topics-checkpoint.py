@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 STEP 4: Classify topics as GAMING or NON-GAMING using ChatGPT.
-Be STRICT: only clearly gaming-related topics.
+Usa keywords + TOP 3 documenti + 3 documenti RANDOM per ogni topic.
 
 Usage: python step4_classify_topics.py --level 0 --base-dir ../../results/experiments_tgdataset/threshold_40_pure
 """
@@ -127,11 +127,23 @@ def main():
         topic_id = topic['topic_id']
         keywords = topic.get('all_keywords', topic.get('keywords', []))[:NUM_TOP_KEYWORDS]
         
+        # Get top_documents and random_documents
+        top_docs = topic.get('top_documents', [])
+        random_docs = topic.get('random_documents', [])
+        
+        # Fallback to sample_documents if new fields not present
+        if not top_docs and not random_docs:
+            sample_docs = topic.get('sample_documents', [])
+            top_docs = sample_docs[:3] if len(sample_docs) >= 3 else sample_docs
+            random_docs = sample_docs[3:6] if len(sample_docs) > 3 else []
+        
         log_time(f"Classifying topic {topic_id}/{len(topics_data)-1}...")
         
-        prompt = f"""Analyze these keywords from a topic model and determine if this topic is about GAMING.
+        # Build prompt with keywords + documents
+        prompt = f"""Analyze this topic from a topic model and determine if it is about GAMING.
 
 GAMING topics include:
+- Videogame modding
 - Video games (any platform: PC, console, mobile)
 - Game mods, cheats, hacks, aimbots
 - Esports, gaming tournaments
@@ -139,17 +151,37 @@ GAMING topics include:
 - Gaming communities, clans, guilds
 - Game streaming (Twitch, YouTube Gaming)
 
-NOT GAMING (be STRICT):
-- General entertainment (movies, TV, music) → NO
-- General software/tech → NO
-- Crypto/trading/NFT → NO
-- Adult content → NO
-- News, politics → NO
-- Social media, memes (unless specifically gaming memes) → NO
+NOT GAMING:
+- General entertainment (movies, TV, music): NO
+- General software/tech: NO
+- Crypto/trading/NFT: NO
+- Adult content: NO
+- News, politics: NO
+- Social media, memes (unless specifically gaming memes): NO
 
-Keywords: {', '.join(keywords)}
+=== KEYWORDS ===
+{', '.join(keywords)}
 
-Answer with ONLY 'yes' or 'no'."""
+=== TOP 3 REPRESENTATIVE MESSAGES ===
+"""
+        
+        # Add top documents
+        for i, doc in enumerate(top_docs[:3], 1):
+            prompt += f"{i}. {doc}\n"
+        
+        if not top_docs:
+            prompt += "(no top documents available)\n"
+        
+        prompt += "\n=== 3 RANDOM MESSAGES ===\n"
+        
+        # Add random documents
+        for i, doc in enumerate(random_docs[:3], 1):
+            prompt += f"{i}. {doc}\n"
+        
+        if not random_docs:
+            prompt += "(no random documents available)\n"
+        
+        prompt += "\nBased on the keywords and messages above, is this topic about GAMING?\nAnswer with ONLY 'yes' or 'no'."
         
         try:
             response = client.chat.completions.create(
@@ -166,6 +198,8 @@ Answer with ONLY 'yes' or 'no'."""
             results.append({
                 "topic_id": topic_id,
                 "keywords": keywords[:10],
+                "top_documents": top_docs[:3],
+                "random_documents": random_docs[:3],
                 "is_gaming": is_gaming,
                 "raw_response": answer
             })

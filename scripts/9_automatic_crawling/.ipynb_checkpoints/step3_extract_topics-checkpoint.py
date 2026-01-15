@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 STEP 3: Extract topics and compute document-topic matrix.
+Salva top_documents (3) e random_documents (3) separatamente per ogni topic.
+
 Usage: python step3_extract_topics.py --level 0
        python step3_extract_topics.py --level 0 --base-dir ../../results/experiments/peak_jul_aug
 """
@@ -34,7 +36,8 @@ def end_timer(name: str, start: float) -> float:
 
 # ======================== CONFIG ========================
 NUM_TOP_WORDS = 60
-NUM_SAMPLE_DOCS = 5
+NUM_TOP_DOCS = 3      # Top 3 messaggi più rappresentativi
+NUM_RANDOM_DOCS = 3   # 3 messaggi random
 MAX_FALLBACK_RATIO = 0.5  # Alert if more than 50% of sample docs need fallback
 
 # ======================== MAIN ========================
@@ -142,6 +145,7 @@ def main():
     # Extract top words for each topic
     t_start = start_timer("extract_keywords")
     log_time(f"Extracting top-{NUM_TOP_WORDS} words for {best_k} topics...")
+    log_time(f"Extracting {NUM_TOP_DOCS} top docs + {NUM_RANDOM_DOCS} random docs per topic...")
     
     topics_data = {
         "level": level,
@@ -154,35 +158,69 @@ def main():
     total_samples = 0
     fallback_samples = 0
     
+    # Set random seed for reproducibility
+    np.random.seed(42)
+    
     for topic_id in range(best_k):
         top_words = lda_model.show_topic(topic_id, topn=NUM_TOP_WORDS)
         keywords = [word for word, _ in top_words]
         
-        # Find sample documents
+        # Get topic probabilities for all documents
         topic_probs = doc_topic_matrix[:, topic_id]
-        top_doc_indices = np.argsort(topic_probs)[-NUM_SAMPLE_DOCS:][::-1]
         
-        sample_docs = []
+        # === TOP DOCUMENTS (highest probability) ===
+        top_doc_indices = np.argsort(topic_probs)[-NUM_TOP_DOCS:][::-1]
+        
+        top_documents = []
         for idx in top_doc_indices:
             total_samples += 1
             if idx < len(df):
-                # Handle NaN values safely
                 if 'text_llm' in df.columns:
                     text_val = df.iloc[idx]['text_llm']
                     if pd.notna(text_val) and isinstance(text_val, str):
-                        sample_docs.append(text_val[:500])
+                        top_documents.append(text_val[:500])
                     else:
-                        # Fallback to text_lda
                         fallback_samples += 1
-                        sample_docs.append(documents[idx][:500])
+                        top_documents.append(documents[idx][:500])
                 else:
-                    sample_docs.append(documents[idx][:500])
+                    top_documents.append(documents[idx][:500])
+        
+        # === RANDOM DOCUMENTS (excluding top ones) ===
+        # Get all document indices for this topic (where it's the dominant topic)
+        dominant_topics = np.argmax(doc_topic_matrix, axis=1)
+        topic_doc_indices = np.where(dominant_topics == topic_id)[0]
+        
+        # Exclude top docs from random selection
+        available_for_random = np.setdiff1d(topic_doc_indices, top_doc_indices)
+        
+        random_documents = []
+        if len(available_for_random) >= NUM_RANDOM_DOCS:
+            random_indices = np.random.choice(available_for_random, NUM_RANDOM_DOCS, replace=False)
+        elif len(available_for_random) > 0:
+            random_indices = available_for_random  # Use all available
+        else:
+            random_indices = []  # No documents available
+        
+        for idx in random_indices:
+            total_samples += 1
+            if idx < len(df):
+                if 'text_llm' in df.columns:
+                    text_val = df.iloc[idx]['text_llm']
+                    if pd.notna(text_val) and isinstance(text_val, str):
+                        random_documents.append(text_val[:500])
+                    else:
+                        fallback_samples += 1
+                        random_documents.append(documents[idx][:500])
+                else:
+                    random_documents.append(documents[idx][:500])
         
         topics_data["topics"].append({
             "topic_id": topic_id,
             "keywords": keywords[:10],
             "all_keywords": keywords,
-            "sample_documents": sample_docs
+            "top_documents": top_documents,        # TOP 3
+            "random_documents": random_documents,  # 3 RANDOM
+            "sample_documents": top_documents + random_documents  # Combined for compatibility
         })
         
         topics_text.append(f"Topic {topic_id}: {', '.join(keywords[:20])}")
@@ -223,6 +261,8 @@ def main():
         f.write(f"  Topics: {best_k}\n")
         f.write(f"  Documents: {len(documents)}\n")
         f.write(f"  Matrix shape: {doc_topic_matrix.shape}\n")
+        f.write(f"  Top docs per topic: {NUM_TOP_DOCS}\n")
+        f.write(f"  Random docs per topic: {NUM_RANDOM_DOCS}\n")
         f.write(f"  Sample docs fallback: {fallback_samples}/{total_samples}\n")
 
 if __name__ == "__main__":
