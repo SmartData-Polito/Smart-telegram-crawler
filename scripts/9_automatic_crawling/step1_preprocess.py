@@ -5,6 +5,12 @@ Extracts English messages and saves them for LDA.
 
 OTTIMIZZAZIONE: Se TGDataset_extracted/ esiste, legge da disco (10x più veloce).
                 Altrimenti fallback ai tar files.
+
+FILTRI (in ordine):
+1. Messaggio >= 15 caratteri
+2. Lingua inglese con confidence > 0.5
+3. (opzionale) Date range
+4. Canale con almeno 10 messaggi inglesi (ULTIMO FILTRO)
 """
 
 import os
@@ -28,6 +34,7 @@ FASTTEXT_MODEL_PATH = "../../material/lid.176.bin"
 TGDATASET_DIR = "../../material"
 EXTRACTED_DIR = "../../material/TGDataset_extracted"  # Cartella con file estratti
 MIN_MESSAGE_LENGTH = 15
+MIN_CHANNEL_MESSAGES = 10  # Minimo messaggi inglesi per canale
 
 # ======================== HELPER FUNCTIONS ========================
 def load_fasttext_model():
@@ -185,6 +192,7 @@ def process_level(level, base_dir, start_date=None, end_date=None):
     df_nodes = pd.read_csv(nodes_file, compression='gzip')
     channels = df_nodes['channel_id'].tolist()
     print(f"Channels to process: {len(channels)}")
+    print(f"Min messages per channel: {MIN_CHANNEL_MESSAGES}")
     
     # Load models and mappings
     print("\nLoading FastText model...")
@@ -212,11 +220,14 @@ def process_level(level, base_dir, start_date=None, end_date=None):
         'channels_found': len(channels_data),
         'channels_not_found': len(channels) - len(channels_data),
         'channels_no_english': 0,
+        'channels_too_few_messages': 0,  # NUOVO: canali con <10 messaggi inglesi
         'channels_with_english': 0,
         'total_messages': 0,
         'messages_in_date_range': 0,
         'english_messages': 0,
+        'english_messages_discarded': 0,  # NUOVO: messaggi scartati per canali con pochi msg
         'total_forwarded_messages': 0,
+        'min_channel_messages': MIN_CHANNEL_MESSAGES,
     }
     
     for ch_id_str, channel_data in tqdm(channels_data.items(), desc="Channels"):
@@ -264,10 +275,19 @@ def process_level(level, base_dir, start_date=None, end_date=None):
                         'forwarded_from_id': forwarded_from_id
                     })
         
+        # ============================================================
+        # FILTRO FINALE: minimo messaggi inglesi per canale
+        # ============================================================
         if channel_english_msgs:
-            tracking['channels_with_english'] += 1
-            tracking['english_messages'] += len(channel_english_msgs)
-            all_messages.extend(channel_english_msgs)
+            if len(channel_english_msgs) >= MIN_CHANNEL_MESSAGES:
+                # Canale passa il filtro
+                tracking['channels_with_english'] += 1
+                tracking['english_messages'] += len(channel_english_msgs)
+                all_messages.extend(channel_english_msgs)
+            else:
+                # Canale ha messaggi inglesi ma troppo pochi
+                tracking['channels_too_few_messages'] += 1
+                tracking['english_messages_discarded'] += len(channel_english_msgs)
         else:
             tracking['channels_no_english'] += 1
     
@@ -294,11 +314,13 @@ def process_level(level, base_dir, start_date=None, end_date=None):
     print(f"  Channels found:           {tracking['channels_found']:,}")
     print(f"  Channels not found:       {tracking['channels_not_found']:,}")
     print(f"  Channels with English:    {tracking['channels_with_english']:,}")
+    print(f"  Channels too few msgs:    {tracking['channels_too_few_messages']:,} (<{MIN_CHANNEL_MESSAGES} msgs)")
     print(f"  Channels no English:      {tracking['channels_no_english']:,}")
     print(f"  Total messages:           {tracking['total_messages']:,}")
     print(f"  Forwarded messages:       {tracking['total_forwarded_messages']:,}")
     print(f"  Messages in date range:   {tracking['messages_in_date_range']:,}")
     print(f"  English messages:         {tracking['english_messages']:,}")
+    print(f"  English msgs discarded:   {tracking['english_messages_discarded']:,} (from channels with <{MIN_CHANNEL_MESSAGES})")
     
     with open(f"{output_dir}/step1_completed.txt", 'w') as f:
         f.write(f"Completed at {datetime.now()}\n")

@@ -158,6 +158,13 @@ NOT GAMING:
 - Adult content: NO
 - News, politics: NO
 - Social media, memes (unless specifically gaming memes): NO
+- Real warfare, military news, geopolitical conflicts: NO
+- Airsoft, paintball, real weapons: NO
+- Gambling, betting, casinos (unless video game gambling): NO
+- Sports betting, fantasy sports: NO
+- Card games (poker, blackjack - unless digital/video game): NO
+- Board games (unless digital versions): NO
+- Scams, money doubling, carding, fraud: NO
 
 === KEYWORDS ===
 {', '.join(keywords)}

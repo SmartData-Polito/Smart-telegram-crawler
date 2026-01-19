@@ -1,69 +1,209 @@
 #!/usr/bin/env python3
 """
 Analyze results from TGDataset gaming detection pipeline.
-Computes metrics, compares with ground truth, generates reports.
 
-METRICHE PER LIVELLO (calcolate sui canali DEL LIVELLO):
-- GT Gaming in level = canali del livello con etichetta "Videogame modding"
-- GT Other in level = canali del livello con etichetta DIVERSA
-- TP = canali del livello con etichetta "Videogame modding" E classificati gaming
-- FP = canali del livello con etichetta DIVERSA E classificati gaming
-- FN = canali del livello con etichetta "Videogame modding" E NON classificati
+CANALI VALIDI:
+- Solo canali con >= 10 messaggi INGLESI nel TGDataset
+- Canali con < 10 messaggi inglesi sono ESCLUSI da tutte le metriche
+
+METRICHE PER LIVELLO:
+- GT Gaming valido in level = GT gaming valido ∩ node_ids del livello
+- GT Altro valido in level = GT altro valido ∩ node_ids del livello
+- TP = predicted_gaming ∩ GT gaming valido in level
+- FP = predicted_gaming ∩ GT altro valido in level
+- FN = GT gaming valido in level - predicted_gaming
 - Precision = TP / (TP + FP)
 - Recall = TP / (TP + FN)
 
-METRICHE GLOBALI (calcolate su TUTTI i 1957 canali gaming):
-- TP = canali con etichetta "Videogame modding" classificati gaming (in qualsiasi livello)
-- FP = canali con etichetta DIVERSA classificati gaming
-- FN = TUTTI i 1957 "Videogame modding" NON classificati
+METRICHE GLOBALI:
+- GT Gaming valido = canali "Videogame modding" con >= 10 msg inglesi
+- GT Altro valido = canali con altra etichetta con >= 10 msg inglesi
+- TP = predicted_gaming ∩ GT gaming valido
+- FP = predicted_gaming ∩ GT altro valido
+- FN = GT gaming valido - TP
 - Precision = TP / (TP + FP)
 - Recall = TP / (TP + FN)
-
-Canali senza etichetta sono ESCLUSI da tutte le metriche.
 """
 
 import os
 import json
 import argparse
-import numpy as np
 import pandas as pd
+import fasttext
 from collections import defaultdict
+from tqdm import tqdm
 
 # ======================== CONFIGURATION ========================
 TGDATASET_DIR = "../../material"
 LABELED_DATA_DIR = f"{TGDATASET_DIR}/TGDataset/labeled_data"
+EXTRACTED_DIR = f"{TGDATASET_DIR}/TGDataset_extracted"
+VALID_CHANNELS_CACHE = "../../results/experiments_tgdataset/gt_valid_channels.json"
+FASTTEXT_MODEL_PATH = f"{TGDATASET_DIR}/lid.176.bin"
+MIN_CHANNEL_MESSAGES = 10
+MIN_MESSAGE_LENGTH = 15
+LANG_CONFIDENCE = 0.5
+
+# ======================== VALID CHANNELS ========================
+
+def load_fasttext_model():
+    """Load FastText language detection model."""
+    if not os.path.exists(FASTTEXT_MODEL_PATH):
+        print(f"Downloading FastText model...")
+        import urllib.request
+        url = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin"
+        urllib.request.urlretrieve(url, FASTTEXT_MODEL_PATH)
+    fasttext.FastText.eprint = lambda x: None
+    return fasttext.load_model(FASTTEXT_MODEL_PATH)
+
+
+def count_english_messages(channel_data, ft_model):
+    """Count English messages in a channel (same logic as step1_preprocess.py)."""
+    text_messages = channel_data.get('text_messages', {})
+    english_count = 0
+    
+    for msg in text_messages.values():
+        msg_text = msg.get('message', '')
+        if not msg_text or len(msg_text) < MIN_MESSAGE_LENGTH:
+            continue
+        
+        text_clean = msg_text.replace('\n', ' ').strip()
+        try:
+            predictions = ft_model.predict(text_clean, k=1)
+            lang = predictions[0][0].replace('__label__', '')
+            conf = predictions[1][0]
+            if lang == 'en' and conf > LANG_CONFIDENCE:
+                english_count += 1
+        except:
+            pass
+    
+    return english_count
+
+
+def compute_valid_channels():
+    """
+    Compute which GT channels have >= MIN_CHANNEL_MESSAGES ENGLISH messages.
+    Uses same filtering logic as step1_preprocess.py.
+    """
+    print(f"\nComputing valid channels (>= {MIN_CHANNEL_MESSAGES} ENGLISH messages)...")
+    print(f"This takes 2-4 hours the first time, then uses cache.")
+    
+    # Load GT
+    topic_file = f"{LABELED_DATA_DIR}/ch_to_topic_mapping.csv"
+    gt = pd.read_csv(topic_file)
+    all_gt_ids = set(gt['ch_ID'].tolist())
+    print(f"  Total GT channels: {len(all_gt_ids)}")
+    
+    # Load mapping
+    mapping_file = f"{TGDATASET_DIR}/channel_file_mapping.json"
+    with open(mapping_file, 'r') as f:
+        mapping = json.load(f)
+    
+    # Load FastText
+    print(f"  Loading FastText model...")
+    ft_model = load_fasttext_model()
+    
+    # Group by file
+    by_file = defaultdict(list)
+    not_in_mapping = 0
+    for ch_id in all_gt_ids:
+        ch_str = str(ch_id)
+        if ch_str in mapping:
+            by_file[mapping[ch_str]['file']].append(ch_str)
+        else:
+            not_in_mapping += 1
+    
+    print(f"  Files to read: {len(by_file)}")
+    print(f"  Not in mapping: {not_in_mapping}")
+    
+    # Count ENGLISH messages per channel
+    channel_english_count = {}
+    
+    for file_path, ch_ids in tqdm(by_file.items(), desc="  Processing files"):
+        full_path = f"{EXTRACTED_DIR}/{file_path}"
+        try:
+            with open(full_path) as f:
+                data = json.load(f)
+            for ch_str in ch_ids:
+                if ch_str in data:
+                    english_count = count_english_messages(data[ch_str], ft_model)
+                    channel_english_count[int(ch_str)] = english_count
+        except:
+            pass
+    
+    # Channels with >= MIN_CHANNEL_MESSAGES English messages
+    valid_channels = {ch for ch, count in channel_english_count.items() if count >= MIN_CHANNEL_MESSAGES}
+    
+    # Split by topic
+    gaming_ids = set(gt[gt['topic'] == 'Videogame modding']['ch_ID'].tolist())
+    other_ids = all_gt_ids - gaming_ids
+    
+    gaming_valid = gaming_ids & valid_channels
+    other_valid = other_ids & valid_channels
+    
+    # Save cache
+    os.makedirs(os.path.dirname(VALID_CHANNELS_CACHE), exist_ok=True)
+    result = {
+        'min_messages': MIN_CHANNEL_MESSAGES,
+        'total_gt': len(all_gt_ids),
+        'gaming': {
+            'total': len(gaming_ids),
+            'valid': len(gaming_valid),
+            'valid_ids': list(gaming_valid),
+        },
+        'other': {
+            'total': len(other_ids),
+            'valid': len(other_valid),
+            'valid_ids': list(other_valid),
+        },
+    }
+    
+    with open(VALID_CHANNELS_CACHE, 'w') as f:
+        json.dump(result, f)
+    
+    print(f"  Gaming valid: {len(gaming_valid)} / {len(gaming_ids)} ({100*len(gaming_valid)/len(gaming_ids):.1f}%)")
+    print(f"  Other valid: {len(other_valid)} / {len(other_ids)} ({100*len(other_valid)/len(other_ids):.1f}%)")
+    print(f"  Saved cache: {VALID_CHANNELS_CACHE}")
+    
+    return gaming_valid, other_valid
+
+
+def load_valid_channels():
+    """Load or compute valid channels."""
+    if os.path.exists(VALID_CHANNELS_CACHE):
+        with open(VALID_CHANNELS_CACHE, 'r') as f:
+            data = json.load(f)
+        
+        if data.get('min_messages') == MIN_CHANNEL_MESSAGES:
+            gaming_valid = set(data['gaming']['valid_ids'])
+            other_valid = set(data['other']['valid_ids'])
+            print(f"\nLoaded valid channels from cache:")
+            print(f"  Gaming valid: {len(gaming_valid)}")
+            print(f"  Other valid: {len(other_valid)}")
+            return gaming_valid, other_valid
+    
+    return compute_valid_channels()
+
 
 # ======================== GROUND TRUTH ========================
+
 def load_ground_truth():
-    """Load ground truth labels from ch_to_topic_mapping.csv
-    
-    Returns:
-        df: DataFrame with all labels
-        gaming_channels: set of channel IDs labeled as "Videogame modding"
-        non_gaming_labeled: set of channel IDs labeled with OTHER topics
-        all_labeled_channels: set of ALL channel IDs that have ANY label
-    """
+    """Load ground truth labels."""
     topic_file = f"{LABELED_DATA_DIR}/ch_to_topic_mapping.csv"
     
     if not os.path.exists(topic_file):
-        print(f"[WARN] Ground truth not found: {topic_file}")
         return None, set(), set(), set()
     
     df = pd.read_csv(topic_file)
-    
-    # Gaming = solo "Videogame modding"
     gaming_channels = set(df[df['topic'] == 'Videogame modding']['ch_ID'].tolist())
-    
-    # TUTTI i canali che hanno UNA QUALSIASI etichetta
     all_labeled_channels = set(df['ch_ID'].tolist())
-    
-    # Canali etichettati con topic DIVERSO da gaming
     non_gaming_labeled = all_labeled_channels - gaming_channels
     
     return df, gaming_channels, non_gaming_labeled, all_labeled_channels
 
+
 # ======================== LEVEL ANALYSIS ========================
-def analyze_level(level, base_dir, threshold, ground_truth_gaming=None, non_gaming_labeled=None, all_labeled_channels=None):
+
+def analyze_level(level, base_dir, threshold, gt_gaming_valid, gt_non_gaming_valid, all_labeled_channels):
     """Analyze a single level."""
     
     level_dir = f"{base_dir}/level_{level}"
@@ -71,10 +211,7 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None, non_gami
     if not os.path.exists(level_dir):
         return None
     
-    results = {
-        'level': level,
-        'threshold': threshold,
-    }
+    results = {'level': level, 'threshold': threshold}
     
     # Load nodes
     nodes_file = f"{level_dir}/nodes_level_{level}.csv.gz"
@@ -93,9 +230,9 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None, non_gami
             tracking = json.load(f)
         results['channels_found'] = tracking.get('channels_found', 0)
         results['channels_with_english'] = tracking.get('channels_with_english', 0)
+        results['channels_too_few_messages'] = tracking.get('channels_too_few_messages', 0)
         results['total_messages'] = tracking.get('total_messages', 0)
         results['english_messages'] = tracking.get('english_messages', 0)
-        results['forwarded_messages'] = tracking.get('total_forwarded_messages', 0)
     
     # Load LDA info
     lda_info_file = f"{level_dir}/lda/best_k.json"
@@ -107,85 +244,52 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None, non_gami
     
     # Load classification results
     gaming_file = f"{level_dir}/classification/gaming_topics.json"
-    if not os.path.exists(gaming_file):
-        gaming_file = f"{level_dir}/classification/politics_topics.json"
-    
     if os.path.exists(gaming_file):
         with open(gaming_file, 'r') as f:
             gaming_data = json.load(f)
-        results['gaming_topics'] = len(gaming_data.get('gaming_topics', gaming_data.get('politics_topics', [])))
+        results['gaming_topics'] = len(gaming_data.get('gaming_topics', []))
         results['total_topics'] = gaming_data.get('total_topics', 0)
     
     # Load channel analysis
     channel_file = f"{level_dir}/channel_analysis/gaming_channels.json"
-    if not os.path.exists(channel_file):
-        channel_file = f"{level_dir}/channel_analysis/political_channels.json"
-    
     if os.path.exists(channel_file):
         with open(channel_file, 'r') as f:
             channel_data = json.load(f)
-        results['gaming_channels'] = channel_data.get('gaming_channels', channel_data.get('political_channels', 0))
+        results['gaming_channels'] = channel_data.get('gaming_channels', 0)
         results['total_analyzed_channels'] = channel_data.get('total_channels', 0)
-        results['gaming_messages'] = channel_data.get('total_gaming_messages', channel_data.get('total_political_messages', 0))
-        results['mean_gaming_ratio'] = channel_data.get('mean_gaming_ratio', channel_data.get('mean_political_ratio', 0))
-        
-        gaming_channel_ids = set(channel_data.get('gaming_channel_ids', channel_data.get('political_channel_ids', [])))
+        results['gaming_messages'] = channel_data.get('total_gaming_messages', 0)
+        gaming_channel_ids = set(channel_data.get('gaming_channel_ids', []))
         results['gaming_channel_ids'] = gaming_channel_ids
     else:
         gaming_channel_ids = set()
         results['gaming_channel_ids'] = set()
     
-    # Load expansion info (for next level)
-    expansion_file = f"{base_dir}/level_{int(level)+1}/expansion_info.json"
-    if os.path.exists(expansion_file):
-        with open(expansion_file, 'r') as f:
-            expansion = json.load(f)
-        results['next_level_candidates'] = expansion.get('unique_forwarded_from', 0)
-        results['next_level_new'] = expansion.get('new_channels', 0)
-    
     # ============================================================
-    # METRICHE PER LIVELLO: calcolate sui canali DEL LIVELLO
+    # METRICHE PER LIVELLO
     # ============================================================
-    if ground_truth_gaming is not None and non_gaming_labeled is not None and all_labeled_channels is not None:
-        
-        # Predizioni del crawler per questo livello
+    if gt_gaming_valid is not None:
         predicted_gaming = gaming_channel_ids
         
-        # GT gaming presenti IN QUESTO LIVELLO
-        gt_gaming_in_level = ground_truth_gaming & node_ids
+        gt_gaming_valid_in_level = gt_gaming_valid & node_ids
+        gt_non_gaming_valid_in_level = gt_non_gaming_valid & node_ids
         
-        # GT non-gaming (etichettati altro) presenti IN QUESTO LIVELLO
-        gt_non_gaming_in_level = non_gaming_labeled & node_ids
+        tp = len(predicted_gaming & gt_gaming_valid_in_level)
+        fp = len(predicted_gaming & gt_non_gaming_valid_in_level)
+        fn = len(gt_gaming_valid_in_level - predicted_gaming)
+        unlabeled = len(predicted_gaming - all_labeled_channels)
         
-        # TP: canali del livello con etichetta gaming E classificati gaming
-        true_positives = len(predicted_gaming & gt_gaming_in_level)
-        
-        # FP: canali del livello con etichetta ALTRO E classificati gaming
-        false_positives = len(predicted_gaming & gt_non_gaming_in_level)
-        
-        # FN: canali del livello con etichetta gaming E NON classificati
-        false_negatives = len(gt_gaming_in_level - predicted_gaming)
-        
-        # Canali predetti gaming ma senza etichetta (per report, esclusi dalle metriche)
-        unlabeled_predicted = len(predicted_gaming - all_labeled_channels)
-        
-        # Precision: TP / (TP + FP) - sul livello
-        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
-        
-        # Recall: TP / (TP + FN) - sul livello
-        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
-        
-        # F1
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
         
         results['ground_truth'] = {
-            'gt_gaming_in_level': len(gt_gaming_in_level),
-            'gt_non_gaming_in_level': len(gt_non_gaming_in_level),
+            'gt_gaming_valid_in_level': len(gt_gaming_valid_in_level),
+            'gt_non_gaming_valid_in_level': len(gt_non_gaming_valid_in_level),
             'predicted_gaming': len(predicted_gaming),
-            'true_positives': true_positives,
-            'false_positives': false_positives,
-            'false_negatives': false_negatives,
-            'unlabeled_predicted': unlabeled_predicted,
+            'true_positives': tp,
+            'false_positives': fp,
+            'false_negatives': fn,
+            'unlabeled_predicted': unlabeled,
             'precision': precision,
             'recall': recall,
             'f1': f1,
@@ -193,9 +297,11 @@ def analyze_level(level, base_dir, threshold, ground_truth_gaming=None, non_gami
     
     return results
 
-# ======================== GLOBAL ANALYSIS ========================
+
+# ======================== MAIN ANALYSIS ========================
+
 def analyze_experiment(experiment_name, threshold):
-    """Analyze entire experiment across all levels."""
+    """Analyze entire experiment."""
     
     base_dir = f"../../results/experiments_tgdataset/{experiment_name}"
     
@@ -209,29 +315,25 @@ def analyze_experiment(experiment_name, threshold):
     print(f"{'='*70}")
     
     # Load ground truth
-    df_labels, ground_truth_gaming, non_gaming_labeled, all_labeled_channels = load_ground_truth()
-    if ground_truth_gaming:
-        print(f"\nGround truth:")
-        print(f"  Canali 'Videogame modding': {len(ground_truth_gaming)}")
-        print(f"  Canali con altre etichette: {len(non_gaming_labeled)}")
-        print(f"  Totale etichettati: {len(all_labeled_channels)}")
+    _, ground_truth_gaming, non_gaming_labeled, all_labeled_channels = load_ground_truth()
     
-    # Load seed info
-    seed_file = f"{base_dir}/level_0/seed_info.json"
-    if os.path.exists(seed_file):
-        with open(seed_file, 'r') as f:
-            seed_info = json.load(f)
-        print(f"\nSeed info:")
-        print(f"  Total seeds: {seed_info.get('total_seeds', 'N/A')}")
-        print(f"  Gaming seeds: {seed_info.get('gaming_seeds', 'N/A')}")
-        print(f"  Non-gaming seeds: {seed_info.get('non_gaming_seeds', 'N/A')}")
+    # Load valid channels
+    gt_gaming_valid, gt_non_gaming_valid = load_valid_channels()
+    
+    print(f"\nGround truth (TUTTI):")
+    print(f"  Gaming: {len(ground_truth_gaming)}")
+    print(f"  Non-gaming: {len(non_gaming_labeled)}")
+    
+    print(f"\nGround truth VALIDI (>= {MIN_CHANNEL_MESSAGES} msg inglesi):")
+    print(f"  Gaming validi: {len(gt_gaming_valid)} ({100*len(gt_gaming_valid)/len(ground_truth_gaming):.1f}%)")
+    print(f"  Non-gaming validi: {len(gt_non_gaming_valid)} ({100*len(gt_non_gaming_valid)/len(non_gaming_labeled):.1f}%)")
     
     # Analyze each level
     all_results = []
     level = 0
     
     while True:
-        result = analyze_level(str(level), base_dir, threshold, ground_truth_gaming, non_gaming_labeled, all_labeled_channels)
+        result = analyze_level(str(level), base_dir, threshold, gt_gaming_valid, gt_non_gaming_valid, all_labeled_channels)
         if result is None:
             break
         all_results.append(result)
@@ -246,221 +348,93 @@ def analyze_experiment(experiment_name, threshold):
     print(f" PER-LEVEL SUMMARY")
     print(f"{'='*70}")
     
-    print(f"\n{'Level':<6} {'Nodes':>8} {'Found':>8} {'English':>8} {'Gaming Ch':>10} {'Gaming %':>10}")
-    print("-"*70)
+    print(f"\n{'Level':<6} {'Nodes':>8} {'Found':>8} {'English':>8} {'Gaming Ch':>10}")
+    print("-"*50)
     
     for r in all_results:
-        gaming_pct = r.get('gaming_channels', 0) / r.get('total_analyzed_channels', 1) * 100 if r.get('total_analyzed_channels') else 0
-        print(f"{r['level']:<6} {r.get('total_nodes', 0):>8} {r.get('channels_found', 0):>8} {r.get('channels_with_english', 0):>8} {r.get('gaming_channels', 0):>10} {gaming_pct:>9.1f}%")
+        print(f"{r['level']:<6} {r.get('total_nodes', 0):>8} {r.get('channels_found', 0):>8} {r.get('channels_with_english', 0):>8} {r.get('gaming_channels', 0):>10}")
     
-    # Messages summary
-    print(f"\n{'Level':<6} {'Total Msgs':>12} {'English':>12} {'Gaming':>12} {'Gaming %':>10}")
-    print("-"*70)
+    # Ground truth per livello
+    print(f"\n{'='*70}")
+    print(f" GROUND TRUTH PER LIVELLO")
+    print(f"{'='*70}")
     
-    for r in all_results:
-        gaming_msg_pct = r.get('gaming_messages', 0) / r.get('english_messages', 1) * 100 if r.get('english_messages') else 0
-        print(f"{r['level']:<6} {r.get('total_messages', 0):>12,} {r.get('english_messages', 0):>12,} {r.get('gaming_messages', 0):>12,} {gaming_msg_pct:>9.1f}%")
-    
-    # Topics summary
-    print(f"\n{'Level':<6} {'Topics K':>10} {'Gaming Topics':>14} {'Gaming %':>10} {'Coherence':>10}")
-    print("-"*70)
+    print(f"\n{'Level':<6} {'GT Gaming':>10} {'GT Other':>10} {'TP':>6} {'FP':>6} {'FN':>6} {'Prec':>8} {'Recall':>8} {'F1':>8}")
+    print("-"*90)
     
     for r in all_results:
-        gaming_topic_pct = r.get('gaming_topics', 0) / r.get('num_topics', 1) * 100 if r.get('num_topics') else 0
-        print(f"{r['level']:<6} {r.get('num_topics', 0):>10} {r.get('gaming_topics', 0):>14} {gaming_topic_pct:>9.1f}% {r.get('coherence', 0):>10.4f}")
-    
-    # Ground truth comparison PER LIVELLO
-    if ground_truth_gaming:
-        print(f"\n{'='*70}")
-        print(f" GROUND TRUTH PER LIVELLO (metriche sui canali del livello)")
-        print(f"{'='*70}")
-        
-        print(f"\n{'Level':<6} {'GT Gaming':>10} {'GT Other':>10} {'Predicted':>10} {'TP':>6} {'FP':>6} {'FN':>6} {'Unlbl':>6} {'Prec':>8} {'Recall':>8} {'F1':>8}")
-        print("-"*110)
-        
-        for r in all_results:
-            gt = r.get('ground_truth', {})
-            if gt:
-                print(f"{r['level']:<6} {gt.get('gt_gaming_in_level', 0):>10} {gt.get('gt_non_gaming_in_level', 0):>10} {gt.get('predicted_gaming', 0):>10} {gt.get('true_positives', 0):>6} {gt.get('false_positives', 0):>6} {gt.get('false_negatives', 0):>6} {gt.get('unlabeled_predicted', 0):>6} {gt.get('precision', 0):>7.1%} {gt.get('recall', 0):>7.1%} {gt.get('f1', 0):>7.1%}")
+        gt = r.get('ground_truth', {})
+        if gt:
+            print(f"{r['level']:<6} {gt.get('gt_gaming_valid_in_level', 0):>10} {gt.get('gt_non_gaming_valid_in_level', 0):>10} {gt.get('true_positives', 0):>6} {gt.get('false_positives', 0):>6} {gt.get('false_negatives', 0):>6} {gt.get('precision', 0):>7.1%} {gt.get('recall', 0):>7.1%} {gt.get('f1', 0):>7.1%}")
     
     # Global metrics
     print(f"\n{'='*70}")
-    print(f" GLOBAL METRICS")
+    print(f" METRICHE GLOBALI")
     print(f"{'='*70}")
     
-    total_nodes = sum(r.get('total_nodes', 0) for r in all_results)
-    total_channels_found = sum(r.get('channels_found', 0) for r in all_results)
-    total_english = sum(r.get('channels_with_english', 0) for r in all_results)
-    total_gaming = sum(r.get('gaming_channels', 0) for r in all_results)
-    total_messages = sum(r.get('total_messages', 0) for r in all_results)
-    total_english_msgs = sum(r.get('english_messages', 0) for r in all_results)
-    total_gaming_msgs = sum(r.get('gaming_messages', 0) for r in all_results)
-    
-    print(f"\n  Levels processed:          {len(all_results)}")
-    print(f"  Total nodes:               {total_nodes:,}")
-    print(f"  Channels found:            {total_channels_found:,}")
-    print(f"  Channels with English:     {total_english:,}")
-    print(f"  Gaming channels:           {total_gaming:,} ({total_gaming/total_english*100:.1f}%)" if total_english else "  Gaming channels:           0")
-    print(f"  Total messages:            {total_messages:,}")
-    print(f"  English messages:          {total_english_msgs:,}")
-    print(f"  Gaming messages:           {total_gaming_msgs:,} ({total_gaming_msgs/total_english_msgs*100:.1f}%)" if total_english_msgs else "  Gaming messages:           0")
-    
-    # Unique gaming channels across all levels
     all_gaming_ids = set()
     for r in all_results:
         all_gaming_ids.update(r.get('gaming_channel_ids', set()))
     
-    print(f"\n  Unique gaming channels:    {len(all_gaming_ids)}")
+    global_tp = len(all_gaming_ids & gt_gaming_valid)
+    global_fp = len(all_gaming_ids & gt_non_gaming_valid)
+    global_fn = len(gt_gaming_valid - all_gaming_ids)
+    global_unlabeled = len(all_gaming_ids - all_labeled_channels)
     
-    if ground_truth_gaming:
-        # ============================================================
-        # METRICHE GLOBALI: rispetto a TUTTI i 1957 canali gaming
-        # ============================================================
-        
-        # TP: etichetta "Videogame modding" E classificato gaming (in qualsiasi livello)
-        global_tp = len(all_gaming_ids & ground_truth_gaming)
-        
-        # FP: etichetta ALTRO E classificato gaming
-        global_fp = len(all_gaming_ids & non_gaming_labeled)
-        
-        # FN: TUTTI i 1957 gaming NON classificati
-        global_fn = len(ground_truth_gaming - all_gaming_ids)
-        
-        # Canali predetti gaming ma senza etichetta
-        global_unlabeled = len(all_gaming_ids - all_labeled_channels)
-        
-        # Precision: TP / (TP + FP)
-        global_precision = global_tp / (global_tp + global_fp) if (global_tp + global_fp) > 0 else 0
-        
-        # Recall: TP / (TP + FN) - rispetto a TUTTI i 1957
-        global_recall = global_tp / (global_tp + global_fn) if (global_tp + global_fn) > 0 else 0
-        
-        # F1
-        global_f1 = 2 * global_precision * global_recall / (global_precision + global_recall) if (global_precision + global_recall) > 0 else 0
-        
-        print(f"\n  --- GLOBAL Ground Truth (rispetto a TUTTI i {len(ground_truth_gaming)} gaming) ---")
-        print(f"  Total GT gaming:           {len(ground_truth_gaming)}")
-        print(f"  Predicted gaming (unique): {len(all_gaming_ids)}")
-        print(f"  True Positives:            {global_tp}")
-        print(f"  False Positives:           {global_fp}")
-        print(f"  False Negatives:           {global_fn}")
-        print(f"  Unlabeled (esclusi):       {global_unlabeled}")
-        print(f"  Precision:                 {global_precision:.1%}")
-        print(f"  Recall:                    {global_recall:.1%}")
-        print(f"  F1 Score:                  {global_f1:.1%}")
+    global_precision = global_tp / (global_tp + global_fp) if (global_tp + global_fp) > 0 else 0
+    global_recall = global_tp / (global_tp + global_fn) if (global_tp + global_fn) > 0 else 0
+    global_f1 = 2 * global_precision * global_recall / (global_precision + global_recall) if (global_precision + global_recall) > 0 else 0
+    
+    print(f"\n  GT gaming validi:          {len(gt_gaming_valid)}")
+    print(f"  Predicted gaming (unique): {len(all_gaming_ids)}")
+    print(f"  True Positives:            {global_tp}")
+    print(f"  False Positives:           {global_fp}")
+    print(f"  False Negatives:           {global_fn}")
+    print(f"  Unlabeled (esclusi):       {global_unlabeled}")
+    print(f"  Precision:                 {global_precision:.1%}")
+    print(f"  Recall:                    {global_recall:.1%}")
+    print(f"  F1 Score:                  {global_f1:.1%}")
     
     # Save results
     output = {
         'experiment_name': experiment_name,
         'threshold': threshold,
-        'levels': all_results,
+        'min_channel_messages': MIN_CHANNEL_MESSAGES,
+        'levels': [{k: (list(v) if isinstance(v, set) else v) for k, v in r.items()} for r in all_results],
         'global': {
-            'total_nodes': total_nodes,
-            'channels_found': total_channels_found,
-            'channels_with_english': total_english,
-            'gaming_channels': total_gaming,
+            'gt_gaming_valid': len(gt_gaming_valid),
+            'gt_non_gaming_valid': len(gt_non_gaming_valid),
             'unique_gaming_channels': len(all_gaming_ids),
-            'total_messages': total_messages,
-            'english_messages': total_english_msgs,
-            'gaming_messages': total_gaming_msgs,
-        }
-    }
-    
-    if ground_truth_gaming:
-        output['global']['ground_truth'] = {
-            'total_gt_gaming': len(ground_truth_gaming),
             'true_positives': global_tp,
             'false_positives': global_fp,
             'false_negatives': global_fn,
-            'unlabeled_predicted': global_unlabeled,
             'precision': global_precision,
             'recall': global_recall,
             'f1': global_f1,
         }
-    
-    # Convert sets to lists for JSON serialization
-    for r in output['levels']:
-        if 'gaming_channel_ids' in r:
-            r['gaming_channel_ids'] = list(r['gaming_channel_ids'])
+    }
     
     output_file = f"{base_dir}/experiment_analysis.json"
     with open(output_file, 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print(f"\nSaved: {output_file}")
-    
-    return output
 
-# ======================== COMPARE EXPERIMENTS ========================
-def compare_experiments(experiment_names):
-    """Compare multiple experiments."""
-    
-    print(f"\n{'='*70}")
-    print(f" EXPERIMENT COMPARISON (Global Metrics)")
-    print(f"{'='*70}")
-    
-    results = []
-    
-    for exp_name in experiment_names:
-        analysis_file = f"../../results/experiments_tgdataset/{exp_name}/experiment_analysis.json"
-        if os.path.exists(analysis_file):
-            with open(analysis_file, 'r') as f:
-                results.append(json.load(f))
-        else:
-            print(f"[WARN] Analysis not found for {exp_name}, run analyze first")
-    
-    if not results:
-        return
-    
-    # Summary table
-    print(f"\n{'Experiment':<30} {'Levels':>7} {'Channels':>10} {'Gaming':>10} {'TP':>6} {'FP':>6} {'FN':>6} {'Prec':>8} {'Recall':>8} {'F1':>8}")
-    print("-"*115)
-    
-    for r in results:
-        g = r.get('global', {})
-        gt = g.get('ground_truth', {})
-        
-        print(f"{r['experiment_name']:<30} {len(r.get('levels', [])):>7} {g.get('channels_with_english', 0):>10,} {g.get('gaming_channels', 0):>10,} {gt.get('true_positives', 0):>6} {gt.get('false_positives', 0):>6} {gt.get('false_negatives', 0):>6} {gt.get('precision', 0):>7.1%} {gt.get('recall', 0):>7.1%} {gt.get('f1', 0):>7.1%}")
 
 # ======================== MAIN ========================
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--experiment-name', type=str, default=None,
-                        help='Analyze specific experiment')
-    parser.add_argument('--threshold', type=float, default=0.4,
-                        help='Threshold used in experiment')
-    parser.add_argument('--level', type=str, default=None,
-                        help='Analyze specific level only')
-    parser.add_argument('--compare', nargs='+', default=None,
-                        help='Compare multiple experiments')
-    parser.add_argument('--all', action='store_true',
-                        help='Analyze all experiments')
+    parser.add_argument('--experiment-name', type=str, required=True)
+    parser.add_argument('--threshold', type=float, required=True)
+    parser.add_argument('--recompute-valid', action='store_true')
     args = parser.parse_args()
     
-    if args.compare:
-        compare_experiments(args.compare)
-    elif args.all:
-        # Find all experiments
-        exp_dir = "../../results/experiments_tgdataset"
-        if os.path.exists(exp_dir):
-            experiments = [d for d in os.listdir(exp_dir) 
-                          if os.path.isdir(f"{exp_dir}/{d}") and d.startswith("threshold_")]
-            
-            for exp in sorted(experiments):
-                # Extract threshold from name
-                parts = exp.split('_')
-                threshold = int(parts[1]) / 100 if len(parts) > 1 else 0.4
-                analyze_experiment(exp, threshold)
-            
-            # Compare all
-            if experiments:
-                compare_experiments(sorted(experiments))
-    elif args.experiment_name:
-        analyze_experiment(args.experiment_name, args.threshold)
-    else:
-        print("Usage:")
-        print("  python analyze_all_levels.py --experiment-name threshold_40_pure --threshold 0.4")
-        print("  python analyze_all_levels.py --all")
-        print("  python analyze_all_levels.py --compare threshold_40_pure threshold_40_mixed")
+    if args.recompute_valid and os.path.exists(VALID_CHANNELS_CACHE):
+        os.remove(VALID_CHANNELS_CACHE)
+        print("Removed valid channels cache.")
+    
+    analyze_experiment(args.experiment_name, args.threshold)
+
 
 if __name__ == "__main__":
     main()
