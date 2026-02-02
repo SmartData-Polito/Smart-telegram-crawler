@@ -13,8 +13,8 @@ METRICHE PER LIVELLO:
 - Recall = TP / (TP + FN)
 
 Uso:
-  python analyze_classification.py --experiment threshold_40_mixed
-  python analyze_classification.py --experiment threshold_15_pure --level 1 --n-topics 5 --n-channels 3
+  python analyze_classification.py --experiment threshold_10_mixed_stratified
+  python analyze_classification.py --experiment threshold_10_mixed_stratified --level 1 --n-topics 5 --n-channels 3
 """
 
 import os
