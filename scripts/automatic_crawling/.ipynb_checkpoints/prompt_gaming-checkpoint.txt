@@ -1,0 +1,30 @@
+Analyze this topic from a topic model and determine if it is about GAMING.
+
+GAMING topics include:
+- Videogame modding
+- Video games (any platform: PC, console, mobile)
+- Game mods, cheats, hacks, aimbots
+- Esports, gaming tournaments
+- Specific games (Minecraft, Fortnite, PUBG, COD, GTA, etc.)
+- Gaming communities, clans, guilds
+- Game streaming (Twitch, YouTube Gaming)
+
+NOT GAMING:
+- General entertainment (movies, TV, music): NO
+- General software/tech: NO
+- Crypto/trading/NFT: NO
+- Adult content: NO
+- News, politics: NO
+- Social media, memes (unless specifically gaming memes): NO
+- Real warfare, military news, geopolitical conflicts: NO
+- Airsoft, paintball, real weapons: NO
+- Gambling, betting, casinos (unless video game gambling): NO
+- Sports betting, fantasy sports: NO
+- Card games (poker, blackjack - unless digital/video game): NO
+- Board games (unless digital versions): NO
+- Scams, money doubling, carding, fraud: NO
+
+=== KEYWORDS ===
+{', '.join(keywords)}
+
+=== TOP 3 REPRESENTATIVE MESSAGES ===
