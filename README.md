@@ -76,7 +76,7 @@ The system was evaluated on two large-scale datasets:
 ## Academic Context
 
 *   **Author:** Massimo Aresca
-*   **Supervisors:** Prof. Luca Vassio, Ing. Giordano Paoletti
+*   **Supervisors:** Prof. Luca Vassio, Giordano Paoletti
 *   **Institution:** Politecnico di Torino - Master Degree course in Cybersecurity
 *   **Academic Year:** 2025-2026
 *   **Thesis Title:** Designing a Topic-Targeted Telegram Crawler
